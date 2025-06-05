@@ -1,25 +1,26 @@
-import logo from './logo.svg';
-import './App.css';
-
-function App() {
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import GuidingUI from './components/GuidingUI/GuidingUI';
+import LoginRegisterUI from './components/LoginRegisterUI/LoginRegisterUI';
+import MainControlUI from './components/MainControlUI/MainControlUI';
+import DeviceMonitorUI from './components/DeviceMonitorUI/DeviceMonitorUI';
+import SceneConfigUI from './components/SceneConfigUI/SceneConfigUI';
+import RecommendationUI from './components/RecommendationUI/RecommendationUI';
+import RegisterUI from './components/RegisterUI/RegisterUI';
+const App = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" exact element={<GuidingUI />} />
+        <Route path="/login" element={<LoginRegisterUI />} />
+        <Route path="/main" element={<MainControlUI />} />
+        <Route path="/device-monitor" element={<DeviceMonitorUI />} />
+        <Route path="/scene-config" element={<SceneConfigUI />} />
+        <Route path="/recommendation" element={<RecommendationUI />} />
+        <Route path="/register" element={<RegisterUI />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;
