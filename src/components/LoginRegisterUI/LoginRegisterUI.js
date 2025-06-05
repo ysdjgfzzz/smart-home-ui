@@ -35,12 +35,7 @@ const LoginRegisterUI = () => {
   const navigate = useNavigate(); // 替换 useHistory
 
   const handleLogin = async () => {
-    try {
-      await axios.post('/api/login', { username, password });
-      navigate('/main'); // 替换 history.push
-    } catch (error) {
-      alert('Login failed. Please check your credentials.');
-    }
+    navigate('/main'); // 替换 history.push
   };
 
   return (
