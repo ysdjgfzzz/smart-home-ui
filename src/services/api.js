@@ -1,14 +1,14 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_URL = 'http://your-backend-url';
+const API_URL = 'http://127.0.0.1:8000';
 
 export const login = async (username, password) => {
-  return axios.post(`${API_URL}/login`, { username, password });
+  return axios.get(`${API_URL}/user/login`, { params: { username, password } });
 };
 
 export const register = async (username, password) => {
-  return axios.post(`${API_URL}/register`, { username, password });
+  return axios.post(`${API_URL}/user/register`, { username, password });
 };
 
 export const getDevices = async () => {

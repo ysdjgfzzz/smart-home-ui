@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styled from 'styled-components';
+import { login } from '../../services/api';
+import { showSuccessTip, showErrorTip, showNormalTip } from '../../services/tools';
 
 // 页面整体容器，设置背景图片
 const PageContainer = styled.div`
@@ -128,7 +130,23 @@ const LoginRegisterUI = () => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    navigate('/main');
+    try {
+      const response = await login(username, password);
+      const { code, msg } = response.data;
+      
+      if (code === 203) {
+        showSuccessTip('登录成功！');
+        navigate('/main');
+      } else if (code === 504) {
+        showErrorTip('用户名或密码错误');
+      } else if (code === 503) {
+        showErrorTip('请输入用户名和密码');
+      } else {
+        showErrorTip(msg || '登录失败，请重试');
+      }
+    } catch (error) {
+      showErrorTip('服务器错误，请稍后重试');
+    }
   };
 
   return (
@@ -138,7 +156,10 @@ const LoginRegisterUI = () => {
           {/* 您需要将logo图片放到public/figures/目录下 */}
           <LogoImage src="/figures/platform_logo.png" alt="智能家居平台" />
         </LogoContainer>
-        <Form>
+        <Form onSubmit={(e) => {
+          e.preventDefault();
+          handleLogin();
+        }}>
           <InputContainer>
             <InputIcon className="fas fa-user"></InputIcon>
             <Separator>|</Separator>
@@ -159,7 +180,7 @@ const LoginRegisterUI = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </InputContainer>
-          <LoginButton onClick={handleLogin}>登录</LoginButton>
+          <LoginButton type="button" onClick={handleLogin}>登录</LoginButton>
           <RegisterLink to="/register">注册新账户</RegisterLink>
         </Form>
       </Container>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { register } from '../../services/api';
+import { showSuccessTip, showErrorTip, showNormalTip } from '../../services/tools';
 import styled from 'styled-components';
 
 // 页面整体容器，设置背景图片
@@ -129,11 +130,21 @@ const RegisterUI = () => {
 
   const handleRegister = async () => {
     try {
-      await axios.post('/api/register', { username, password });
-      alert('注册成功！请登录。');
-      navigate('/login');
+      const response = await register(username, password);
+      const { code, msg } = response.data;
+      
+      if (code === 202) {
+        showSuccessTip('注册成功！请登录。');
+        navigate('/login');
+      } else if (code === 504) {
+        showErrorTip('注册失败，该用户名已被使用');
+      } else if (code === 503) {
+        showErrorTip('请输入用户名和密码');
+      } else {
+        showErrorTip(msg || '注册失败，请重试');
+      }
     } catch (error) {
-      alert('注册失败，请重试。');
+      showErrorTip('服务器错误，请稍后重试');
     }
   };
 
@@ -143,7 +154,10 @@ const RegisterUI = () => {
         <LogoContainer>
           <LogoImage src="/figures/platform_logo.png" alt="智能家居平台" />
         </LogoContainer>
-        <Form>
+        <Form onSubmit={(e) => {
+          e.preventDefault();
+          handleRegister();
+        }}>
           <InputContainer>
             <InputIcon className="fas fa-user"></InputIcon>
             <Separator>|</Separator>
@@ -164,8 +178,8 @@ const RegisterUI = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </InputContainer>
-          <RegisterButton onClick={handleRegister}>注册</RegisterButton>
-          <LoginLink to="/login">已有账户？立即登录</LoginLink>
+          <RegisterButton type="button" onClick={handleRegister}>注册</RegisterButton>
+          <LoginLink to="/login">返回登录</LoginLink>
         </Form>
       </Container>
     </PageContainer>
