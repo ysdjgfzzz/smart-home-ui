@@ -5,121 +5,166 @@ import styled from 'styled-components';
 import { login } from '../../services/api';
 import { showSuccessTip, showErrorTip, showNormalTip } from '../../services/tools';
 
-// 页面整体容器，设置背景图片
+// 页面整体容器，使用与GuidingUI相同的渐变背景
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-image: url('/figures/background.jpg'); /* 您需要将背景图片放到public/figures/目录下 */
-  background-size: cover;
-  background-position: center center;
-  background-attachment: fixed;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: Arial, sans-serif;
   margin: 0;
+  color: white;
 `;
 
-// 半透明容器
+// 半透明容器 - 缩短水平宽度，保持高度不变
 const Container = styled.div`
-  max-width: 800px;
+  max-width: 400px;
+  width: 75%;
   margin: 20px auto;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  opacity: 0.95;
+  padding: 50px 35px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
 `;
 
-// Logo容器
+// 返回按钮样式 - 稍微增大
+const BackButton = styled(Link)`
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 26px;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateX(-2px);
+  }
+`;
+
+// Logo容器 - 适度增大字体
 const LogoContainer = styled.h1`
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 36px;
+  font-size: 2.3rem;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  color: white;
 `;
 
-// Logo图片样式
-const LogoImage = styled.img`
-  width: 400px;
-  height: auto;
-  max-width: 100%;
-`;
-
-// 表单容器
+// 表单容器 - 保持原有比例
 const Form = styled.form`
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 400px;
-  margin-top: 80px;
+  max-width: 360px;
 `;
 
-// 输入框容器
+// 输入框容器 - 适度增大间距
 const InputContainer = styled.div`
   display: flex;
   align-items: center;
   width: 100%;
-  margin-top: 10px;
+  margin-bottom: 24px;
   position: relative;
 `;
 
-// 图标样式
+// 图标样式 - 适度增大图标
 const InputIcon = styled.i`
-  font-size: 25px;
-  color: #888;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.8);
   margin-right: 8px;
   position: absolute;
-  left: 10px;
+  left: 17px;
   z-index: 1;
 `;
 
-// 分隔符
+// 分隔符 - 调整位置
 const Separator = styled.span`
-  font-size: 18px;
-  color: #888;
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.6);
   margin-right: 8px;
   position: absolute;
-  left: 35px;
+  left: 45px;
   z-index: 1;
 `;
 
-// 输入框样式
+// 输入框样式 - 适度增大尺寸
 const Input = styled.input`
-  padding: 10px;
-  padding-left: 50px;
-  font-size: 16px;
-  border-radius: 4px;
+  padding: 16px;
+  padding-left: 65px;
+  font-size: 17px;
+  border-radius: 28px;
   width: 100%;
-  border: 1px solid #ddd;
-  box-sizing: border-box;
-`;
-
-// 登录按钮样式
-const LoginButton = styled.button`
-  background-color: rgb(0, 60, 0);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
   color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 18px;
-  margin: 20px 0 10px 0;
-  transition: background-color 0.3s;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
   
-  &:hover {
-    background-color: rgb(0, 40, 0);
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 15px;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
   }
 `;
 
-// 注册链接样式
-const RegisterLink = styled(Link)`
-  text-align: center;
-  color: #007bff;
-  text-decoration: none;
-  margin-top: 10px;
+// 登录按钮样式 - 适度增大尺寸
+const LoginButton = styled.button`
+  padding: 16px 32px;
+  font-size: 1.2rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 28px;
+  cursor: pointer;
+  margin: 24px 0 18px 0;
+  transition: all 0.3s ease;
+  font-weight: 500;
   
   &:hover {
+    background-color: white;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+// 注册链接样式 - 适度增大字体
+const RegisterLink = styled(Link)`
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  margin-top: 12px;
+  font-size: 1.05rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    color: white;
     text-decoration: underline;
   }
 `;
@@ -152,9 +197,11 @@ const LoginRegisterUI = () => {
   return (
     <PageContainer>
       <Container>
+        <BackButton to="/">
+          <i className="fas fa-arrow-left"></i>
+        </BackButton>
         <LogoContainer>
-          {/* 您需要将logo图片放到public/figures/目录下 */}
-          <LogoImage src="/figures/platform_logo.png" alt="智能家居平台" />
+          智能家居系统
         </LogoContainer>
         <Form onSubmit={(e) => {
           e.preventDefault();
