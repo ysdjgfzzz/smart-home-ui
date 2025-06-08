@@ -3,10 +3,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
-// 页面整体容器 - 使用不同的背景渐变
+// 页面整体容器 - 使用背景图片
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #6c5ce7 100%);
+  background: url('/background.jpg') center/cover no-repeat,
+              linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #6c5ce7 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,7 +19,7 @@ const PageContainer = styled.div`
 
 // 主容器
 const Container = styled.div`
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   padding: 30px 25px;
   box-shadow: 0 15px 45px rgba(0, 0, 0, 0.15);
@@ -33,22 +34,21 @@ const Container = styled.div`
 
 // 标题样式
 const Title = styled.h1`
-  color: #2d3436;
+  color:rgb(255, 255, 255);
   font-size: 2rem;
   font-weight: bold;
   margin-bottom: 10px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
 // 副标题
 const Subtitle = styled.p`
-  color: #636e72;
+  color:rgb(255, 255, 255);
   font-size: 0.9rem;
   margin-bottom: 25px;
   line-height: 1.4;
 `;
 
-// 圆形布局容器
 // 圆形布局容器
 const CircularLayout = styled.div`
   position: relative;
