@@ -3,17 +3,34 @@ import React from 'react';
 import styled from 'styled-components';
 import { getEnvironmentStatus } from '../../services/api';
 
+// 页面整体容器 - 使用与登录注册界面相同的渐变背景
+const PageContainer = styled.div`
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+  color: white;
+`;
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 30px;
   gap: 20px;
+  width: 100%;
+  max-width: 1200px;
 `;
 
 const Title = styled.h1`
-  color: #333;
+  color: white;
   margin-bottom: 20px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
 const ContentWrapper = styled.div`
@@ -35,10 +52,12 @@ const EnvironmentSection = styled.div`
 `;
 
 const DeviceCard = styled.div`
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -49,20 +68,21 @@ const DeviceHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
 const DeviceName = styled.h3`
   margin: 0;
-  color: #333;
+  color: white;
 `;
 
 const DeviceStatus = styled.span`
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 14px;
-  background-color: ${props => props.online ? '#e6f4ea' : '#fce8e8'};
-  color: ${props => props.online ? '#1e8e3e' : '#d93025'};
+  background-color: ${props => props.online ? 'rgba(30, 142, 62, 0.8)' : 'rgba(217, 48, 37, 0.8)'};
+  color: white;
+  border: 1px solid ${props => props.online ? 'rgba(30, 142, 62, 0.3)' : 'rgba(217, 48, 37, 0.3)'};
 `;
 
 const DeviceControls = styled.div`
@@ -74,14 +94,16 @@ const DeviceControls = styled.div`
 const ControlButton = styled.button`
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #ddd;
-  background: ${props => props.active ? '#4285f4' : 'white'};
-  color: ${props => props.active ? 'white' : '#333'};
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: ${props => props.active ? 'rgba(66, 133, 244, 0.8)' : 'rgba(255, 255, 255, 0.1)'};
+  color: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
 
   &:hover {
-    background: ${props => props.active ? '#3367d6' : '#f5f5f5'};
+    background: ${props => props.active ? 'rgba(51, 103, 214, 0.9)' : 'rgba(255, 255, 255, 0.2)'};
+    transform: translateY(-1px);
   }
 `;
 
@@ -99,20 +121,22 @@ const InfoItem = styled.div`
 
 const InfoLabel = styled.span`
   font-size: 12px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
 `;
 
 const InfoValue = styled.span`
   font-size: 14px;
-  color: #333;
+  color: white;
   font-weight: 500;
 `;
 
 const StatusCard = styled.div`
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 `;
 
 const StatusItem = styled.div`
@@ -120,7 +144,7 @@ const StatusItem = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   
   &:last-child {
     border-bottom: none;
@@ -129,12 +153,13 @@ const StatusItem = styled.div`
 
 const Label = styled.span`
   font-weight: 500;
-  color: #333;
+  color: white;
 `;
 
 const Value = styled.span`
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
 `;
+
 
 // 模拟设备数据
 const mockDevices = [
@@ -343,50 +368,52 @@ const DeviceMonitorUI = () => {
   };
 
   return (
-    <Container>
-      <Title>设备监控</Title>
-      <ContentWrapper>
-        <DeviceSection>
-          {devices.map(device => (
-            <DeviceCard key={device.id}>
-              <DeviceHeader>
-                <DeviceName>{device.name}</DeviceName>
-                <DeviceStatus online={device.online}>
-                  {device.online ? '在线' : '离线'}
-                </DeviceStatus>
-              </DeviceHeader>
-              {device.online && renderDeviceControls(device)}
-            </DeviceCard>
-          ))}
-        </DeviceSection>
-        <EnvironmentSection>
-          <StatusCard>
-            <DeviceName style={{marginBottom: '15px'}}>环境监控</DeviceName>
-            {error ? (
-              <StatusItem>
-                <Label style={{color: 'red'}}>错误</Label>
-                <Value style={{color: 'red'}}>{error}</Value>
-              </StatusItem>
-            ) : (
-              <>
+    <PageContainer>
+      <Container>
+        <Title>设备监控</Title>
+        <ContentWrapper>
+          <DeviceSection>
+            {devices.map(device => (
+              <DeviceCard key={device.id}>
+                <DeviceHeader>
+                  <DeviceName>{device.name}</DeviceName>
+                  <DeviceStatus online={device.online}>
+                    {device.online ? '在线' : '离线'}
+                  </DeviceStatus>
+                </DeviceHeader>
+                {device.online && renderDeviceControls(device)}
+              </DeviceCard>
+            ))}
+          </DeviceSection>
+          <EnvironmentSection>
+            <StatusCard>
+              <DeviceName style={{marginBottom: '15px'}}>环境监控</DeviceName>
+              {error ? (
                 <StatusItem>
-                  <Label>温度</Label>
-                  <Value>{environmentStatus.temperature} °C</Value>
+                  <Label style={{color: 'rgba(217, 48, 37, 0.9)'}}>错误</Label>
+                  <Value style={{color: 'rgba(217, 48, 37, 0.9)'}}>{error}</Value>
                 </StatusItem>
-                <StatusItem>
-                  <Label>光照</Label>
-                  <Value>{environmentStatus.illumination} lx</Value>
-                </StatusItem>
-                <StatusItem>
-                  <Label>湿度</Label>
-                  <Value>{environmentStatus.humidity} %</Value>
-                </StatusItem>
-              </>
-            )}
-          </StatusCard>
-        </EnvironmentSection>
-      </ContentWrapper>
-    </Container>
+              ) : (
+                <>
+                  <StatusItem>
+                    <Label>温度</Label>
+                    <Value>{environmentStatus.temperature} °C</Value>
+                  </StatusItem>
+                  <StatusItem>
+                    <Label>光照</Label>
+                    <Value>{environmentStatus.illumination} lx</Value>
+                  </StatusItem>
+                  <StatusItem>
+                    <Label>湿度</Label>
+                    <Value>{environmentStatus.humidity} %</Value>
+                  </StatusItem>
+                </>
+              )}
+            </StatusCard>
+          </EnvironmentSection>
+        </ContentWrapper>
+      </Container>
+    </PageContainer>
   );
 };
 
