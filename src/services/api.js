@@ -6,7 +6,7 @@ const ACCESS_URL = 'http://127.0.0.1:10086';  // 环境监测服务器地址
 
 // 用户相关接口
 export const login = async (username, password) => {
-  return axios.get(`${API_URL}/user/login`, { params: { username, password } });
+  return axios.post(`${API_URL}/user/login`, { username, password });
 };
 
 export const register = async (username, password) => {
