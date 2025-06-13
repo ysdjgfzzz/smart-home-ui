@@ -547,13 +547,6 @@ const DeviceMonitorUI = () => {
     await updateDeviceStateLocal(deviceType, 'style', style);
   };
 
-  // 处理数值类型属性变化（温度、亮度、湿度、开合度）
-  const handleValueChange = async (deviceType, property, value, range) => {
-    // 确保值在范围内
-    const newValue = Math.min(Math.max(value, range.min), range.max);
-    await updateDeviceStateLocal(deviceType, property, newValue);
-  };
-
   // 处理数值增减变化
   const handleValueAdjustment = async (deviceType, property, isUp) => {
     try {
@@ -656,18 +649,6 @@ const DeviceMonitorUI = () => {
           <>
             <DeviceControls>
               {renderPowerButton()}
-              <ControlButton 
-                onClick={() => handleValueAdjustment(device.type, 'temperature', true)}
-                disabled={device.power !== 'on' || device.temperature >= DEVICE_RANGES[DEVICE_TYPES.CONDITIONER].temperature.max}
-              >
-                升温
-              </ControlButton>
-              <ControlButton 
-                onClick={() => handleValueAdjustment(device.type, 'temperature', false)}
-                disabled={device.power !== 'on' || device.temperature <= DEVICE_RANGES[DEVICE_TYPES.CONDITIONER].temperature.min}
-              >
-                降温
-              </ControlButton>
               {device.power === 'on' && DEVICE_RANGES[DEVICE_TYPES.CONDITIONER] && (
                 <>
                   {DEVICE_RANGES[DEVICE_TYPES.CONDITIONER].modes.map(mode => (
@@ -694,8 +675,12 @@ const DeviceMonitorUI = () => {
             </DeviceControls>
             <DeviceInfo>
               <InfoItem>
-                <InfoLabel>当前温度</InfoLabel>
-                <InfoValue>{device.temperature || '--'}°C</InfoValue>
+                <InfoLabel>温度设置</InfoLabel>
+                {device.power === 'on' && renderValueController(
+                  'temperature',
+                  device.temperature,
+                  DEVICE_RANGES[DEVICE_TYPES.CONDITIONER].temperature
+                )}
               </InfoItem>
               <InfoItem>
                 <InfoLabel>运行模式</InfoLabel>
@@ -738,10 +723,6 @@ const DeviceMonitorUI = () => {
             </DeviceControls>
             <DeviceInfo>
               <InfoItem>
-                <InfoLabel>当前亮度</InfoLabel>
-                <InfoValue>{device.brightness || '--'} lm</InfoValue>
-              </InfoItem>
-              <InfoItem>
                 <InfoLabel>亮度设置</InfoLabel>
                 {device.power === 'on' && renderValueController(
                   'brightness',
@@ -783,10 +764,6 @@ const DeviceMonitorUI = () => {
             </DeviceControls>
             <DeviceInfo>
               <InfoItem>
-                <InfoLabel>当前设定湿度</InfoLabel>
-                <InfoValue>{device.humidity || '--'}%</InfoValue>
-              </InfoItem>
-              <InfoItem>
                 <InfoLabel>目标湿度</InfoLabel>
                 {device.power === 'on' && renderValueController(
                   'humidity',
@@ -827,10 +804,6 @@ const DeviceMonitorUI = () => {
               )}
             </DeviceControls>
             <DeviceInfo>
-              <InfoItem>
-                <InfoLabel>当前开合度</InfoLabel>
-                <InfoValue>{device.position || '--'}%</InfoValue>
-              </InfoItem>
               <InfoItem>
                 <InfoLabel>开合度设置</InfoLabel>
                 {device.power === 'on' && renderValueController(

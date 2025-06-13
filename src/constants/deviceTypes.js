@@ -1,9 +1,17 @@
-// 设备类型常量
+// 设备类型
 export const DEVICE_TYPES = {
   CONDITIONER: 'conditioner',
   LAMP: 'lamp',
   DEHUMIDIFIER: 'dehumidifier',
   CURTAIN: 'curtain'
+};
+
+// 设备类型中文映射
+export const DEVICE_TYPES_CN = {
+  'conditioner': '空调',
+  'lamp': '智能灯',
+  'dehumidifier': '除湿器',
+  'curtain': '窗帘'
 };
 
 // 设备配置范围

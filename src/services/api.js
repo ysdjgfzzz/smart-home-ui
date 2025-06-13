@@ -26,6 +26,18 @@ export const updateScene = async (sceneData) => {
   return axios.post(`${API_URL}/config/scene/update`, sceneData);
 };
 
+export const updateSceneField = async (payload) => {
+  return await axios.post(`${API_URL}/config/scene/update/field`, payload, {
+    headers: {'Content-Type': 'application/json'}
+  });
+};
+
+export const updateSceneDevice = async (payload) => {
+  return await axios.post(`${API_URL}/config/scene/update/device`, payload, {
+    headers: {'Content-Type': 'application/json'}
+  });
+};
+
 export const getAllScenes = async () => {
   return axios.post(`${API_URL}/config/scene/findAll`);
 };
