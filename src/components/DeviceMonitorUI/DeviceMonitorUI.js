@@ -274,17 +274,11 @@ const DeviceMonitorUI = () => {
       setLoading(true);
       const response = await getAllDeviceStates();
 
-      // 确保设备数据是数组格式
       let deviceData = [];
       if (response?.data) {
-        if (Array.isArray(response.data)) {
-          deviceData = response.data;
-        } else if (Array.isArray(response.data.data)) {
-          deviceData = response.data.data;
-        } else if (typeof response.data === 'object') {
-          deviceData = [response.data];
-        }
+        deviceData = response.data.data;
       }
+      console.log(deviceData);
 
       // 转换设备数据格式
       const formattedDevices = deviceData.map(device => {
@@ -344,23 +338,56 @@ const DeviceMonitorUI = () => {
         return;
       }
 
-      // 构建新的状态对象
-      const newState = {
-        'power': cachedDevice.power || 'off',
-        'temperature': cachedDevice.temperature || 24,
-        'speed': cachedDevice.speed || 'medium',
-        'mode': cachedDevice.mode || 'cool',
-        [property]: value
+      // 根据设备类型构建新的状态对象
+      let newState = { power: cachedDevice.power || 'off' };
+      
+      switch (deviceType) {
+        case DEVICE_TYPES.CONDITIONER:
+          newState = {
+            ...newState,
+            temperature: cachedDevice.temperature || 24,
+            speed: cachedDevice.speed || 'medium',
+            mode: cachedDevice.mode || 'cool'
+          };
+          break;
+        case DEVICE_TYPES.LAMP:
+          newState = {
+            ...newState,
+            brightness: cachedDevice.brightness || 800,
+            color: cachedDevice.color || 'neutral'
+          };
+          break;
+        case DEVICE_TYPES.DEHUMIDIFIER:
+          newState = {
+            ...newState,
+            humidity: cachedDevice.humidity || 50,
+            level: cachedDevice.level || 'auto'
+          };
+          break;
+        case DEVICE_TYPES.CURTAIN:
+          newState = {
+            ...newState,
+            position: cachedDevice.position || 50,
+            style: cachedDevice.style || 'sheer'
+          };
+          break;
+        default:
+          console.error('未知的设备类型:', deviceType);
+          return;
+      }
+
+      // 更新特定属性的值
+      newState[property] = value;
+
+      // 构建请求体
+      const payload = {
+        device_name: deviceType,
+        state: newState,
+        username: username
       };
 
-      // 构建FormData
-      const formData = new FormData();
-      formData.append('device_name', deviceType);
-      formData.append('state', JSON.stringify(newState));
-      formData.append('username', username);
-
       // 调用API更新设备状态
-      await updateDeviceState(formData);
+      await updateDeviceState(payload);
 
       // 更新成功后重新获取所有设备状态
       await fetchDeviceStates();
@@ -387,23 +414,54 @@ const DeviceMonitorUI = () => {
       return;
     }
 
-    // 构建新的状态对象（Python字典格式）
-    const newState = {
-      'power': cachedDevice.power === 'on' ? 'off' : 'on',
-      'temperature': cachedDevice.temperature || 24,
-      'speed': cachedDevice.speed || 'medium',
-      'mode': cachedDevice.mode || 'cool'
-    };
+    // 根据设备类型构建新的状态对象
+    let newState = { power: cachedDevice.power === 'on' ? 'off' : 'on' };
+    
+    switch (deviceType) {
+      case DEVICE_TYPES.CONDITIONER:
+        newState = {
+          ...newState,
+          temperature: cachedDevice.temperature || 24,
+          speed: cachedDevice.speed || 'medium',
+          mode: cachedDevice.mode || 'cool'
+        };
+        break;
+      case DEVICE_TYPES.LAMP:
+        newState = {
+          ...newState,
+          brightness: cachedDevice.brightness || 800,
+          color: cachedDevice.color || 'neutral'
+        };
+        break;
+      case DEVICE_TYPES.DEHUMIDIFIER:
+        newState = {
+          ...newState,
+          humidity: cachedDevice.humidity || 50,
+          level: cachedDevice.level || 'auto'
+        };
+        break;
+      case DEVICE_TYPES.CURTAIN:
+        newState = {
+          ...newState,
+          position: cachedDevice.position || 50,
+          style: cachedDevice.style || 'sheer'
+        };
+        break;
+      default:
+        console.error('未知的设备类型:', deviceType);
+        return;
+    }
 
-    // 构建FormData
-    const formData = new FormData();
-    formData.append('device_name', deviceType);
-    formData.append('state', JSON.stringify(newState));
-    formData.append('username', username);
+    // 构建请求体
+    const payload = {
+      device_name: deviceType,
+      state: newState,
+      username: username
+    };
 
     // 调用API更新设备状态
     try {
-      await updateDeviceState(formData);
+      await updateDeviceState(payload);
       // 更新成功后重新获取所有设备状态
       await fetchDeviceStates();
     } catch (error) {
@@ -444,6 +502,54 @@ const DeviceMonitorUI = () => {
     await updateDeviceStateLocal(deviceType, property, newValue);
   };
 
+  // 处理数值增减变化
+  const handleValueAdjustment = async (deviceType, property, isUp) => {
+    try {
+      // 检查设备是否存在
+      const device = devices.find(d => d.type === deviceType);
+      if (!device) {
+        console.error('设备不存在:', deviceType);
+        return;
+      }
+
+      // 检查设备是否开启
+      if (device.power !== 'on') {
+        console.error('设备未开启:', deviceType);
+        return;
+      }
+
+      // 获取设备的配置范围
+      const deviceConfig = DEVICE_RANGES[deviceType];
+      if (!deviceConfig || !deviceConfig[property]) {
+        console.error('无效的属性配置:', property);
+        return;
+      }
+
+      const range = deviceConfig[property];
+      const currentValue = device[property] || range.min;
+      const step = range.step;
+      
+      // 计算新值
+      let newValue;
+      if (isUp) {
+        newValue = Math.min(currentValue + step, range.max);
+      } else {
+        newValue = Math.max(currentValue - step, range.min);
+      }
+
+      // 如果值没有变化，说明已经达到上下限
+      if (newValue === currentValue) {
+        return;
+      }
+
+      // 更新设备状态
+      await updateDeviceStateLocal(deviceType, property, newValue);
+    } catch (error) {
+      console.error(`调整${property}失败:`, error);
+      setError(`调整${property}失败`);
+    }
+  };
+
   // 渲染设备控制界面
   const renderDeviceControls = (device) => {
     if (!device || !device.type) {
@@ -463,12 +569,12 @@ const DeviceMonitorUI = () => {
     const renderValueController = (property, value, range) => {
       const decrease = () => {
         const newValue = Math.max(range.min, value - range.step);
-        handleValueChange(device.type, property, newValue, range);
+        handleValueAdjustment(device.type, property, false);
       };
 
       const increase = () => {
         const newValue = Math.min(range.max, value + range.step);
-        handleValueChange(device.type, property, newValue, range);
+        handleValueAdjustment(device.type, property, true);
       };
 
       return (
@@ -499,14 +605,14 @@ const DeviceMonitorUI = () => {
             <DeviceControls>
               {renderPowerButton()}
               <ControlButton 
-                onClick={() => {/* 暂未实现 */}}
-                disabled={device.power !== 'on'}
+                onClick={() => handleValueAdjustment(device.type, 'temperature', true)}
+                disabled={device.power !== 'on' || device.temperature >= DEVICE_RANGES[DEVICE_TYPES.CONDITIONER].temperature.max}
               >
                 升温
               </ControlButton>
               <ControlButton 
-                onClick={() => {/* 暂未实现 */}}
-                disabled={device.power !== 'on'}
+                onClick={() => handleValueAdjustment(device.type, 'temperature', false)}
+                disabled={device.power !== 'on' || device.temperature <= DEVICE_RANGES[DEVICE_TYPES.CONDITIONER].temperature.min}
               >
                 降温
               </ControlButton>

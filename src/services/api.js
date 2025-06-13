@@ -101,13 +101,10 @@ export const getRecommendations = async () => {
 };
 
 // 设备配置相关接口
-export const updateDeviceState = async (data) => {
-  console.log(data.get("device_name"));
-  console.log(data.get("username"));
-  console.log(data.get("state"));
-  const response = await axios.post(`${API_URL}/device/update`, data);
-  console.log("updateDeviceState response:", response.data);
-  return response;
+export const updateDeviceState = async (payload) => {
+  return await axios.post(`${API_URL}/device/update`, payload, {
+    headers: {'Content-Type': 'application/json'}
+  });
 };
 
 export const getAllDeviceStates = async () => {
