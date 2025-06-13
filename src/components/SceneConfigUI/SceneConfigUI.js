@@ -4,13 +4,27 @@ import styled from 'styled-components';
 import { getAllScenes, addScene, updateScene, removeScene } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_RANGES } from '../../constants/deviceTypes';
 
+const PageContainer = styled.div`
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+  color: white;
+  position: relative;
+  overflow-y: auto;
+`;
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
   max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 `;
 
 const SceneList = styled.div`
@@ -22,28 +36,46 @@ const SceneList = styled.div`
 `;
 
 const SceneCard = styled.div`
-  background: white;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  color: white;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const Button = styled.button`
   padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  background: #007bff;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(66, 133, 244, 0.8);
   color: white;
   cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+
   &:hover {
-    background: #0056b3;
+    background: rgba(51, 103, 214, 0.9);
+    transform: translateY(-1px);
   }
+
   &:disabled {
-    background: #ccc;
+    opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
   }
 `;
 
@@ -54,9 +86,12 @@ const ButtonGroup = styled.div`
 `;
 
 const DeleteButton = styled(Button)`
-  background: #dc3545;
+  background: rgba(220, 53, 69, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
   &:hover {
-    background: #c82333;
+    background: rgba(200, 35, 51, 0.9);
+    transform: translateY(-1px);
   }
 `;
 
@@ -73,11 +108,14 @@ const Modal = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 12px;
   width: 90%;
   max-width: 500px;
+  color: white;
 `;
 
 const Form = styled.form`
@@ -99,10 +137,13 @@ const Select = styled.select`
 `;
 
 const DeviceStateCard = styled.div`
-  background: #f8f9fa;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 15px;
+  color: white;
 `;
 
 const StateItem = styled.div`
@@ -121,7 +162,7 @@ const StateItem = styled.div`
 
 const DeviceTitle = styled.h3`
   margin: 0 0 10px 0;
-  color: #333;
+  color: white;
   text-transform: capitalize;
 `;
 
@@ -130,9 +171,12 @@ const DeviceInfo = styled.div`
   flex-direction: column;
   gap: 15px;
   padding: 15px;
-  background: #f8f9fa;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   margin-bottom: 15px;
+  color: white;
 `;
 
 const InfoItem = styled.div`
@@ -147,7 +191,7 @@ const InfoLabel = styled.span`
 `;
 
 const InfoValue = styled.span`
-  color: #333;
+  color: white;
 `;
 
 const SceneConfigUI = () => {
@@ -385,7 +429,8 @@ const SceneConfigUI = () => {
   };
 
   return (
-    <Container>
+    <PageContainer>
+      <Container>
       <h1>场景配置</h1>
       <Button onClick={handleCreateScene}>创建新场景</Button>
       
@@ -452,7 +497,8 @@ const SceneConfigUI = () => {
           </ModalContent>
         </Modal>
       )}
-    </Container>
+      </Container>
+    </PageContainer>
   );
 };
 

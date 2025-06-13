@@ -6,7 +6,7 @@ import { DEVICE_TYPES, DEVICE_RANGES } from '../../constants/deviceTypes';
 
 // 页面整体容器 - 使用与登录注册界面相同的渐变背景
 const PageContainer = styled.div`
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   flex-direction: column;
@@ -16,47 +16,102 @@ const PageContainer = styled.div`
   padding: 20px;
   box-sizing: border-box;
   color: white;
+  position: relative;
+  overflow: hidden;
+`;
+
+// 环境监控信息条 - 右上角贴边水平展示
+const EnvironmentBar = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  
+  @media (max-width: 768px) {
+    position: relative;
+    top: 0;
+    right: 0;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+`;
+
+// 环境信息项
+const EnvironmentItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 80px;
+`;
+
+// 环境信息标签
+const EnvironmentLabel = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+`;
+
+// 环境信息值
+const EnvironmentValue = styled.span`
+  font-size: 16px;
+  color: white;
+  font-weight: 500;
+  text-align: center;
 `;
 
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30px;
-  gap: 20px;
+  padding: 10px 20px;
+  gap: 15px;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1800px;
+  height: 100%;
+  overflow-y: auto;
 `;
 
 const Title = styled.h1`
   color: white;
-  margin-bottom: 20px;
+  margin: 20px 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-size: 32px;
+  text-align: center;
 `;
 
 const ContentWrapper = styled.div`
   display: flex;
-  gap: 30px;
+  flex-direction: column;
+  gap: 15px;
   width: 100%;
   max-width: 1200px;
-
+  margin-top: 80px; // 为固定的环境监控条留出空间
+  flex: 1;
+  
   @media (max-width: 768px) {
-    flex-direction: column;
+    margin-top: 0;
   }
 `;
 
 const DeviceSection = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(350px, 1fr));
+  gap: 40px;
+  margin-bottom: 15px;
 
-const EnvironmentSection = styled.div`
-  width: 300px;
-
-  @media (max-width: 768px) {
-    width: 100%;
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 `;
 
@@ -65,13 +120,19 @@ const DeviceCard = styled.div`
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  min-width: 350px;
+  width: 100%;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 300px;
   }
 `;
 
@@ -101,20 +162,28 @@ const DeviceStatus = styled.span`
 
 const DeviceControls = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 8px;
   margin: 15px 0;
+  overflow-x: auto;
+  
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+  }
 `;
 
 const ControlButton = styled.button`
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: ${props => props.active ? 'rgba(66, 133, 244, 0.8)' : 'rgba(255, 255, 255, 0.1)'};
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
 
   &:hover {
     background: ${props => props.active ? 'rgba(51, 103, 214, 0.9)' : 'rgba(255, 255, 255, 0.2)'};
@@ -129,10 +198,15 @@ const ControlButton = styled.button`
 `;
 
 const DeviceInfo = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 15px;
   margin-top: 15px;
+  overflow-x: auto;
+
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+  }
 `;
 
 const InfoItem = styled.div`
@@ -142,6 +216,12 @@ const InfoItem = styled.div`
   padding: 10px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
+  min-width: 120px;
+  flex-shrink: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 `;
 
 const InfoLabel = styled.span`
@@ -159,17 +239,17 @@ const InfoValue = styled.span`
 const ValueController = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   margin-top: 5px;
   background: rgba(255, 255, 255, 0.05);
-  padding: 8px;
-  border-radius: 8px;
+  padding: 6px;
+  border-radius: 6px;
 `;
 
 const ValueButton = styled.button`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
   color: white;
@@ -178,7 +258,7 @@ const ValueButton = styled.button`
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 18px;
+  font-size: 14px;
   padding: 0;
 
   &:hover {
@@ -194,14 +274,14 @@ const ValueButton = styled.button`
 `;
 
 const ValueDisplay = styled.span`
-  min-width: 80px;
+  min-width: 60px;
   text-align: center;
-  font-size: 16px;
+  font-size: 14px;
   color: white;
   font-weight: 500;
   background: rgba(255, 255, 255, 0.1);
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
 `;
 
 const Value = styled.span`
@@ -831,37 +911,33 @@ const DeviceMonitorUI = () => {
               </DeviceCard>
             )}
           </DeviceSection>
-          <EnvironmentSection>
-            <DeviceCard>
-              <DeviceHeader>
-                <DeviceName>环境监控</DeviceName>
-              </DeviceHeader>
-              <DeviceInfo>
-                {error ? (
-                  <InfoItem>
-                    <InfoLabel style={{color: 'rgba(217, 48, 37, 0.9)'}}>错误</InfoLabel>
-                    <InfoValue style={{color: 'rgba(217, 48, 37, 0.9)'}}>{error}</InfoValue>
-                  </InfoItem>
-                ) : (
-                  <>
-                    <InfoItem>
-                      <InfoLabel>温度</InfoLabel>
-                      <InfoValue>{environmentStatus.temperature || '--'} °C</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>光照</InfoLabel>
-                      <InfoValue>{environmentStatus.illumination || '--'} lx</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>湿度</InfoLabel>
-                      <InfoValue>{environmentStatus.humidity || '--'} %</InfoValue>
-                    </InfoItem>
-                  </>
-                )}
-              </DeviceInfo>
-            </DeviceCard>
-          </EnvironmentSection>
+
         </ContentWrapper>
+        
+        {/* 环境监控信息条 - 右上角固定位置 */}
+        <EnvironmentBar>
+          {error ? (
+            <EnvironmentItem>
+              <EnvironmentLabel>错误</EnvironmentLabel>
+              <EnvironmentValue style={{color: 'rgba(217, 48, 37, 0.9)'}}>{error}</EnvironmentValue>
+            </EnvironmentItem>
+          ) : (
+            <>
+              <EnvironmentItem>
+                <EnvironmentLabel>温度</EnvironmentLabel>
+                <EnvironmentValue>{environmentStatus.temperature || '--'} °C</EnvironmentValue>
+              </EnvironmentItem>
+              <EnvironmentItem>
+                <EnvironmentLabel>光照</EnvironmentLabel>
+                <EnvironmentValue>{environmentStatus.illumination || '--'} lx</EnvironmentValue>
+              </EnvironmentItem>
+              <EnvironmentItem>
+                <EnvironmentLabel>湿度</EnvironmentLabel>
+                <EnvironmentValue>{environmentStatus.humidity || '--'} %</EnvironmentValue>
+              </EnvironmentItem>
+            </>
+          )}
+        </EnvironmentBar>
     </Container>
     </PageContainer>
   );
