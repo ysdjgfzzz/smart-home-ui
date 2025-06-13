@@ -13,54 +13,108 @@ export const register = async (username, password) => {
   return axios.post(`${API_URL}/user/register`, { username, password });
 };
 
-// 场景相关接口
+// 场景配置相关接口
 export const addScene = async (sceneData) => {
-  return axios.put(`${API_URL}/config/scene/add`, sceneData);
+  return axios.post(`${API_URL}/config/scene/add`, sceneData);
 };
 
 export const removeScene = async (sceneId) => {
-  return axios.put(`${API_URL}/config/scene/remove`, { scene_id: sceneId });
+  return axios.post(`${API_URL}/config/scene/remove`, { scene_id: sceneId });
 };
 
 export const updateScene = async (sceneData) => {
-  return axios.put(`${API_URL}/config/scene/update`, sceneData);
+  return axios.post(`${API_URL}/config/scene/update`, sceneData);
 };
 
 export const getAllScenes = async () => {
-  return axios.get(`${API_URL}/config/scene/findAll`);
+  return axios.post(`${API_URL}/config/scene/findAll`);
 };
 
 export const getSceneById = async (sceneId) => {
-  return axios.get(`${API_URL}/config/scene/findById`, { params: { scene_id: sceneId } });
+  return axios.post(`${API_URL}/config/scene/findById`, { scene_id: sceneId });
 };
 
-// 规则相关接口
-export const addRule = async (ruleData) => {
-  return axios.put(`${API_URL}/config/rule/add`, ruleData);
+// 规则配置相关接口
+export const addRule = async (sceneId, ruleData) => {
+  return axios.post(`${API_URL}/config/rule/add`, { scene_id: sceneId, ...ruleData });
 };
 
-export const removeRule = async (ruleId) => {
-  return axios.put(`${API_URL}/config/rule/remove`, { rule_id: ruleId });
+export const removeRule = async (sceneId, ruleId) => {
+  return axios.post(`${API_URL}/config/rule/remove`, { scene_id: sceneId, rule_id: ruleId });
 };
 
-export const updateRule = async (ruleData) => {
-  return axios.put(`${API_URL}/config/rule/update`, ruleData);
+export const updateRule = async (sceneId, ruleId, ruleData) => {
+  return axios.post(`${API_URL}/config/rule/update`, { 
+    scene_id: sceneId, 
+    rule_id: ruleId, 
+    ...ruleData 
+  });
 };
 
 export const getAllRules = async (sceneId) => {
-  return axios.get(`${API_URL}/config/rule/findAll`, { params: { scene_id: sceneId } });
+  return axios.post(`${API_URL}/config/rule/findAll`, { scene_id: sceneId });
 };
 
 export const getRuleById = async (sceneId, ruleId) => {
-  return axios.get(`${API_URL}/config/rule/findById`, { 
-    params: { 
-      scene_id: sceneId,
-      rule_id: ruleId 
-    } 
+  return axios.post(`${API_URL}/config/rule/findById`, { 
+    scene_id: sceneId, 
+    rule_id: ruleId 
   });
+};
+
+// 场景执行相关接口
+export const switchScene = async (sceneId) => {
+  return axios.post(`${API_URL}/execute/switch`, { scene_id: sceneId });
+};
+
+export const switchToDefaultScene = async () => {
+  return axios.post(`${API_URL}/execute/default`);
+};
+
+// 场景历史记录相关接口
+export const getAllBehaviors = async (sceneId) => {
+  return axios.post(`${API_URL}/history/behavior/findAll`, { scene_id: sceneId });
+};
+
+export const getUserBehaviors = async (userId, sceneId) => {
+  return axios.post(`${API_URL}/history/behavior/findByUsername`, { 
+    user_id: userId, 
+    scene_id: sceneId 
+  });
+};
+
+export const recoverScene = async (sceneId) => {
+  return axios.post(`${API_URL}/history/bin/recover`, { scene_id: sceneId });
+};
+
+export const clearRecycleBin = async () => {
+  return axios.post(`${API_URL}/history/bin/remove`);
+};
+
+export const getRecycleBinScenes = async () => {
+  return axios.post(`${API_URL}/history/bin/findAll`);
+};
+
+// 场景推荐相关接口
+export const getRecommendations = async () => {
+  return axios.post(`${API_URL}/recommend`);
+};
+
+// 设备配置相关接口
+export const updateDeviceState = async (data) => {
+  console.log(data.get("device_name"));
+  console.log(data.get("username"));
+  console.log(data.get("state"));
+  const response = await axios.post(`${API_URL}/device/update`, data);
+  console.log("updateDeviceState response:", response.data);
+  return response;
+};
+
+export const getAllDeviceStates = async () => {
+  return axios.post(`${API_URL}/device/states`);
 };
 
 // 环境状态接口
 export const getEnvironmentStatus = async () => {
-  return axios.get(`${ACCESS_URL}/status`);
+  return axios.get(`${ACCESS_URL}/environment`);
 };

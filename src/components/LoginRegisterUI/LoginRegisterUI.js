@@ -179,6 +179,8 @@ const LoginRegisterUI = () => {
       const { code, msg } = response.data;
       
       if (code === 203) {
+        // 登录成功，保存用户名到本地存储
+        localStorage.setItem('username', username);
         showSuccessTip('登录成功！');
         navigate('/main');
       } else if (code === 504) {
