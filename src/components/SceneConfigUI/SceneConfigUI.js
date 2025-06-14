@@ -1,8 +1,9 @@
 // src/components/SceneConfigUI/SceneConfigUI.js
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { getAllScenes, addScene, updateScene, removeScene, updateSceneField, updateSceneDevice } from '../../services/api';
+import { getAllScenes, addScene, updateScene, removeScene, updateSceneField, updateSceneDevice, executeActivate, executeDeactivate } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_TYPES_CN, DEVICE_RANGES } from '../../constants/deviceTypes';
+import { showSuccessTip, showErrorTip } from '../../services/tools';
 
 const PageContainer = styled.div`
   height: 100vh;
@@ -36,9 +37,9 @@ const SceneList = styled.div`
 `;
 
 const SceneCard = styled.div`
-  background: rgba(255, 255, 255, 0.1);
+  background: ${props => props.isActive ? 'rgba(66, 133, 244, 0.2)' : 'rgba(255, 255, 255, 0.1)'};
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid ${props => props.isActive ? 'rgba(66, 133, 244, 0.4)' : 'rgba(255, 255, 255, 0.2)'};
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -47,11 +48,25 @@ const SceneCard = styled.div`
   flex-direction: column;
   gap: 10px;
   color: white;
+  position: relative;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
   }
+`;
+
+const ActiveBadge = styled.div`
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: rgba(66, 133, 244, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
 const Button = styled.button`
@@ -87,13 +102,12 @@ const ButtonGroup = styled.div`
 
 const DeleteButton = styled(Button)`
   background: rgba(220, 53, 69, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  
   &:hover {
     background: rgba(200, 35, 51, 0.9);
-    transform: translateY(-1px);
   }
 `;
+
+const DeactivateButton = DeleteButton;
 
 const Modal = styled.div`
   position: fixed;
@@ -344,6 +358,24 @@ const PriorityBadge = styled.span`
   background: rgba(255, 255, 255, 0.2);
 `;
 
+const ActivateButton = styled(Button)`
+  background: ${props => props.isActive ? 'rgba(158, 158, 158, 0.3)' : 'rgba(46, 204, 113, 0.8)'};
+  cursor: ${props => props.isActive ? 'default' : 'pointer'};
+  border: 1px solid ${props => props.isActive ? 'rgba(158, 158, 158, 0.4)' : 'rgba(46, 204, 113, 0.4)'};
+  
+  &:hover {
+    background: ${props => props.isActive ? 'rgba(158, 158, 158, 0.3)' : 'rgba(46, 204, 113, 0.9)'};
+    transform: ${props => props.isActive ? 'none' : 'translateY(-1px)'};
+  }
+`;
+
+const CardActionButtonWrapper = styled.div`
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 2;
+`;
+
 const SceneConfigUI = () => {
   const [scenes, setScenes] = useState(() => {
     // 初始化时尝试从 localStorage 获取缓存的场景数据
@@ -361,9 +393,31 @@ const SceneConfigUI = () => {
     device_type: '',
     config: {}
   });
+  const [currentSceneId, setCurrentSceneId] = useState(null);
 
   useEffect(() => {
     fetchScenes();
+
+    // 监听监控数据更新
+    const handleMonitorDataUpdate = (event) => {
+      const data = event.detail;
+      if (data) {
+        setCurrentSceneId(data.active);
+      }
+    };
+
+    // 初始化时从localStorage读取当前场景
+    const savedData = localStorage.getItem('monitorData');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      setCurrentSceneId(data.active);
+    }
+
+
+    window.addEventListener('monitorDataUpdate', handleMonitorDataUpdate);
+    return () => {
+      window.removeEventListener('monitorDataUpdate', handleMonitorDataUpdate);
+    };
   }, []);
 
   const fetchScenes = async () => {
@@ -462,9 +516,9 @@ const SceneConfigUI = () => {
       };
       try {
         await updateSceneField(payload);
-        console.log('更新场景名称成功');
+        // console.log('更新场景名称成功');
       } catch (error) {
-        console.error('更新场景名称失败:', error);
+        // console.error('更新场景名称失败:', error);
         throw error;
       }
     }
@@ -478,9 +532,9 @@ const SceneConfigUI = () => {
       };
       try {
         await updateSceneField(payload);
-        console.log('更新优先级成功');
+        // console.log('更新优先级成功');
       } catch (error) {
-        console.error('更新优先级失败:', error);
+        // console.error('更新优先级失败:', error);
         throw error;
       }
     }
@@ -494,9 +548,9 @@ const SceneConfigUI = () => {
       };
       try {
         await updateSceneField(payload);
-        console.log('更新启用状态成功');
+        // console.log('更新启用状态成功');
       } catch (error) {
-        console.error('更新启用状态失败:', error);
+        // console.error('更新启用状态失败:', error);
         throw error;
       }
     }
@@ -521,14 +575,16 @@ const SceneConfigUI = () => {
           };
           try {
             await updateSceneDevice(payload);
-            console.log(`更新设备配置: ${deviceType}.${attribute} = ${value}`);
+            // console.log(`更新设备配置: ${deviceType}.${attribute} = ${value}`);
           } catch (error) {
-            console.error(`更新设备配置失败: ${deviceType}.${attribute}`, error);
+            showErrorTip("场景编辑失败");
+            // console.error(`更新设备配置失败: ${deviceType}.${attribute}`, error);
             throw error;
           }
         }
       }
     }
+    showSuccessTip("场景编辑成功");
   };
 
   const handleCreateSubmit = async () => {
@@ -542,7 +598,7 @@ const SceneConfigUI = () => {
     // 使用formData中的完整config，包含所有设备的配置
     const payload = {
       name: formData.name,
-      creator: 1,
+      creator: creator,
       config: formData.config,  // 直接使用完整的config对象
       priority: formData.priority || 0,
       enabled: formData.enabled ? 1 : 0  // 将boolean转换为int
@@ -550,8 +606,10 @@ const SceneConfigUI = () => {
     console.log('创建新场景的payload:', payload);
     try {
       const response = await addScene(payload);
+      showSuccessTip("创建新场景成功");
       console.log('创建新场景成功:', response);
     } catch (error) {
+      showErrorTip("创建新场景失败");
       console.error('创建新场景失败:', error);
       throw error;
     }
@@ -605,6 +663,36 @@ const SceneConfigUI = () => {
   const handleConfigButtonClick = (e, key, value) => {
     e.preventDefault(); // 阻止表单提交
     handleDeviceConfigChange(key, value);
+  };
+
+  // 激活场景
+  const handleActivateScene = async (sceneId) => {
+    try {
+      const username = localStorage.getItem('username');
+      if (!username) {
+        showErrorTip('未找到用户信息');
+        return;
+      }
+
+      const response = await executeActivate(sceneId, username);
+      console.log(response);
+      showSuccessTip('场景已激活');
+    } catch (error) {
+      console.error('激活场景失败:', error);
+      showErrorTip('激活场景失败');
+    }
+  };
+
+  // 停用场景
+  const handleDeactivateScene = async () => {
+    try {
+      const response = await executeDeactivate();
+      console.log(response);
+      showSuccessTip('场景已停用');
+    } catch (error) {
+      console.error('停用场景失败:', error);
+      showErrorTip('停用场景失败');
+    }
   };
 
   const renderDeviceState = (deviceType, state) => {
@@ -1020,109 +1108,131 @@ const SceneConfigUI = () => {
   return (
     <PageContainer>
       <Container>
-      <h1>场景配置</h1>
-      <Button onClick={handleCreateScene}>创建新场景</Button>
-      
-      <SceneList>
-        {Array.isArray(scenes) && scenes.map((scene) => (
-          <SceneCard key={scene.scene_id}>
-            <h3>{scene.name}</h3>
-            <ButtonGroup>
-              <Button onClick={() => handleViewDetail(scene)}>查看详情</Button>
-              <Button onClick={() => handleEditScene(scene)}>编辑</Button>
-              <DeleteButton onClick={() => handleDeleteScene(scene.scene_id)}>删除</DeleteButton>
-            </ButtonGroup>
-          </SceneCard>
-        ))}
-      </SceneList>
-
-      {showModal && (
-        <Modal>
-          <ModalContent>
-            <h2>{editingScene ? '编辑场景' : '创建场景'}</h2>
-            <Form onSubmit={handleSubmit}>
-              <InputGroup>
-                <label>场景名称</label>
-                <Input
-                  type="text"
-                  name="name"
-                  placeholder="场景名称"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </InputGroup>
-              <InputGroup>
-                <label>优先级</label>
-                <Input
-                  type="number"
-                  name="priority"
-                  placeholder="优先级"
-                  value={formData.priority}
-                  onChange={handleInputChange}
-                  min="0"
-                  max="100"
-                />
-                <EnableButton
-                  type="button"
-                  enabled={formData.enabled}
-                  onClick={() => setFormData(prev => ({
-                    ...prev,
-                    enabled: !prev.enabled
-                  }))}
-                >
-                  {formData.enabled ? '禁用场景' : '启用场景'}
-                </EnableButton>
-              </InputGroup>
-              <Select
-                name="device_type"
-                value={formData.device_type}
-                onChange={handleInputChange}
-              >
-                <option value="">选择设备类型（可选）</option>
-                {Object.values(DEVICE_TYPES).map(type => (
-                  <option key={type} value={type}>{DEVICE_TYPES_CN[type]}</option>
-                ))}
-              </Select>
-              {renderDeviceConfig()}
+        <h1>场景配置</h1>
+        <Button onClick={handleCreateScene}>创建新场景</Button>
+        <SceneList>
+          {scenes.map(scene => (
+            <SceneCard 
+              key={scene.scene_id} 
+              isActive={currentSceneId === scene.scene_id}
+            >
+              <CardActionButtonWrapper>
+                {currentSceneId === scene.scene_id ? (
+                  <DeactivateButton
+                    onClick={handleDeactivateScene}
+                  >
+                    停用
+                  </DeactivateButton>
+                ) : (
+                  <ActivateButton
+                    onClick={() => handleActivateScene(scene.scene_id)}
+                    isActive={false}
+                  >
+                    激活
+                  </ActivateButton>
+                )}
+              </CardActionButtonWrapper>
+              {currentSceneId === scene.scene_id && (
+                <ActiveBadge>当前场景</ActiveBadge>
+              )}
+              <h3>{scene.name}</h3>
               <ButtonGroup>
-                <Button type="submit">保存</Button>
-                <Button type="button" onClick={() => setShowModal(false)}>取消</Button>
+                <Button onClick={() => handleViewDetail(scene)}>查看详情</Button>
+                <Button onClick={() => handleEditScene(scene)}>编辑场景</Button>
+                <Button>编辑规则</Button>
+                <DeleteButton onClick={() => handleDeleteScene(scene.scene_id)}>删除</DeleteButton>
               </ButtonGroup>
-            </Form>
-          </ModalContent>
-        </Modal>
-      )}
+            </SceneCard>
+          ))}
+        </SceneList>
 
-      {showDetailModal && selectedScene && (
-        <Modal>
-          <ModalContent>
-            <SceneDetailHeader>
-              <SceneDetailTitle>
-                <h2>场景详情：{selectedScene.name}</h2>
-              </SceneDetailTitle>
-              <SceneStatus>
-                <StatusBadge enabled={selectedScene.enabled === 1}>
-                  {selectedScene.enabled === 1 ? '已启用' : '已禁用'}
-                </StatusBadge>
-                <PriorityBadge>
-                  优先级：{selectedScene.priority || 0}
-                </PriorityBadge>
-              </SceneStatus>
-            </SceneDetailHeader>
-            <div style={{ marginBottom: '20px', maxHeight: '60vh', overflow: 'auto', padding: '10px' }}>
-              {renderDeviceState('conditioner', selectedScene.config?.conditioner)}
-              {renderDeviceState('lamp', selectedScene.config?.lamp)}
-              {renderDeviceState('dehumidifier', selectedScene.config?.dehumidifier)}
-              {renderDeviceState('fan', selectedScene.config?.fan)}
-              {renderDeviceState('curtain', selectedScene.config?.curtain)}
-            </div>
-            <ButtonGroup>
-              <Button onClick={() => setShowDetailModal(false)}>关闭</Button>
-            </ButtonGroup>
-          </ModalContent>
-        </Modal>
-      )}
+        {showModal && (
+          <Modal>
+            <ModalContent>
+              <h2>{editingScene ? '编辑场景' : '创建场景'}</h2>
+              <Form onSubmit={handleSubmit}>
+                <InputGroup>
+                  <label>场景名称</label>
+                  <Input
+                    type="text"
+                    name="name"
+                    placeholder="场景名称"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </InputGroup>
+                <InputGroup>
+                  <label>优先级</label>
+                  <Input
+                    type="number"
+                    name="priority"
+                    placeholder="优先级"
+                    value={formData.priority}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="100"
+                  />
+                  <EnableButton
+                    type="button"
+                    enabled={formData.enabled}
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      enabled: !prev.enabled
+                    }))}
+                  >
+                    {formData.enabled ? '禁用场景' : '启用场景'}
+                  </EnableButton>
+                </InputGroup>
+                <Select
+                  name="device_type"
+                  value={formData.device_type}
+                  onChange={handleInputChange}
+                >
+                  <option value="">选择设备类型（可选）</option>
+                  {Object.values(DEVICE_TYPES).map(type => (
+                    <option key={type} value={type}>{DEVICE_TYPES_CN[type]}</option>
+                  ))}
+                </Select>
+                {renderDeviceConfig()}
+                <ButtonGroup>
+                  <Button type="submit">保存</Button>
+                  <Button type="button" onClick={() => setShowModal(false)}>取消</Button>
+                </ButtonGroup>
+              </Form>
+            </ModalContent>
+          </Modal>
+        )}
+
+        {showDetailModal && selectedScene && (
+          <Modal>
+            <ModalContent>
+              <SceneDetailHeader>
+                <SceneDetailTitle>
+                  <h2>场景详情：{selectedScene.name}</h2>
+                </SceneDetailTitle>
+                <SceneStatus>
+                  <StatusBadge enabled={selectedScene.enabled === 1}>
+                    {selectedScene.enabled === 1 ? '已启用' : '已禁用'}
+                  </StatusBadge>
+                  <PriorityBadge>
+                    优先级：{selectedScene.priority || 0}
+                  </PriorityBadge>
+                </SceneStatus>
+              </SceneDetailHeader>
+              <div style={{ marginBottom: '20px', maxHeight: '60vh', overflow: 'auto', padding: '10px' }}>
+                {renderDeviceState('conditioner', selectedScene.config?.conditioner)}
+                {renderDeviceState('lamp', selectedScene.config?.lamp)}
+                {renderDeviceState('dehumidifier', selectedScene.config?.dehumidifier)}
+                {renderDeviceState('fan', selectedScene.config?.fan)}
+                {renderDeviceState('curtain', selectedScene.config?.curtain)}
+              </div>
+              <ButtonGroup>
+                <Button onClick={() => setShowDetailModal(false)}>关闭</Button>
+              </ButtonGroup>
+            </ModalContent>
+          </Modal>
+        )}
       </Container>
     </PageContainer>
   );

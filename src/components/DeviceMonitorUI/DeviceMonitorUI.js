@@ -1,7 +1,7 @@
 // src/components/DeviceMonitorUI/DeviceMonitorUI.js
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { getEnvironmentStatus, getAllDeviceStates, updateDeviceState } from '../../services/api';
+import { getAllDeviceStates, updateDeviceState } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_RANGES } from '../../constants/deviceTypes';
 
 // 页面整体容器 - 使用与登录注册界面相同的渐变背景
@@ -290,35 +290,49 @@ const Value = styled.span`
 
 
 const DeviceMonitorUI = () => {
-  const [environmentStatus, setEnvironmentStatus] = React.useState({
+  const [environmentStatus, setEnvironmentStatus] = React.useState(() => {
+    // 初始化时从localStorage读取监控数据
+    const savedData = localStorage.getItem('monitorData');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      return {
+        temperature: data.environment?.temperature || '--',
+        illumination: data.environment?.illumination || '--',
+        humidity: data.environment?.humidity || '--'
+      };
+    }
+    return {
     temperature: '--',
     illumination: '--',
     humidity: '--'
+    };
   });
   const [error, setError] = React.useState(null);
   const [devices, setDevices] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
 
-  // 获取环境状态
-  const fetchEnvironmentStatus = async () => {
-    try {
-      const response = await getEnvironmentStatus();
-      if (response && response.data) {
+  // 监听监控数据更新事件
+  React.useEffect(() => {
+    // 监控数据更新事件处理函数
+    const handleMonitorDataUpdate = (event) => {
+      const data = event.detail;
+      if (data && data.environment) {
         setEnvironmentStatus({
-          temperature: response.data.temperature,
-          illumination: response.data.illumination,
-          humidity: response.data.humidity
+          temperature: data.environment.temperature || '--',
+          illumination: data.environment.illumination || '--',
+          humidity: data.environment.humidity || '--'
         });
-        setError(null);
-      } else {
-        setError('响应数据格式错误');
-        console.error('响应数据格式错误:', response);
       }
-    } catch (error) {
-      setError(error.message || '获取环境状态失败');
-      console.error('获取环境状态失败:', error);
-    }
-  };
+    };
+
+    // 添加事件监听器
+    window.addEventListener('monitorDataUpdate', handleMonitorDataUpdate);
+
+    // 组件卸载时移除事件监听器
+    return () => {
+      window.removeEventListener('monitorDataUpdate', handleMonitorDataUpdate);
+    };
+  }, []);
 
   // 获取所有设备状态
   const fetchDeviceStates = async () => {
@@ -830,7 +844,6 @@ const DeviceMonitorUI = () => {
   React.useEffect(() => {
     const loadData = async () => {
       try {
-        await fetchEnvironmentStatus();
         await fetchDeviceStates();
       } catch (error) {
         console.error('加载数据失败:', error);

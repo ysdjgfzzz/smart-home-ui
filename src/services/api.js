@@ -75,12 +75,15 @@ export const getRuleById = async (sceneId, ruleId) => {
 };
 
 // 场景执行相关接口
-export const switchScene = async (sceneId) => {
-  return axios.post(`${API_URL}/execute/switch`, { scene_id: sceneId });
+export const executeActivate = async (sceneId, username) => {
+  return axios.post(`${API_URL}/execute/activate`, { 
+    scene_id: sceneId,
+    username: username
+  });
 };
 
-export const switchToDefaultScene = async () => {
-  return axios.post(`${API_URL}/execute/default`);
+export const executeDeactivate = async () => {
+  return axios.post(`${API_URL}/execute/deactivate`);
 };
 
 // 场景历史记录相关接口
@@ -124,6 +127,6 @@ export const getAllDeviceStates = async () => {
 };
 
 // 环境状态接口
-export const getEnvironmentStatus = async () => {
-  return axios.get(`${ACCESS_URL}/environment`);
-};
+// export const getEnvironmentStatus = async () => {
+//   return axios.get(`${ACCESS_URL}/environment`);
+// };
