@@ -211,7 +211,7 @@ const InfoItem = styled.div`
 
 const InfoLabel = styled.span`
   font-weight: bold;
-  color: #666;
+  color: white;
 `;
 
 const InfoValue = styled.span`
