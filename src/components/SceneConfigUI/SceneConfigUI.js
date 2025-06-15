@@ -1,7 +1,7 @@
 // src/components/SceneConfigUI/SceneConfigUI.js
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { getAllScenes, addScene, updateScene, removeScene, updateSceneField, updateSceneDevice, executeActivate, executeDeactivate } from '../../services/api';
+import { getAllScenes, addScene, updateScene, removeScene, updateSceneField, updateSceneDevice, executeActivate, executeDeactivate, getAllRules, ruleUpdateField, addRule, removeRule } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_TYPES_CN, DEVICE_RANGES } from '../../constants/deviceTypes';
 import { showSuccessTip, showErrorTip } from '../../services/tools';
 
@@ -386,14 +386,19 @@ const SceneConfigUI = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [editingScene, setEditingScene] = useState(null);
   const [selectedScene, setSelectedScene] = useState(null);
+  const [sceneRules, setSceneRules] = useState({});
   const [formData, setFormData] = useState({
     name: '',
     priority: 0,
-    enabled: true,
+    enabled: 0,
     device_type: '',
     config: {}
   });
   const [currentSceneId, setCurrentSceneId] = useState(null);
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [editingRuleScene, setEditingRuleScene] = useState(null);
+  const [ruleEditStates, setRuleEditStates] = useState({}); // 新增：规则编辑本地状态
+  const [newRule, setNewRule] = useState(null); // 新增：新规则编辑状态
 
   useEffect(() => {
     fetchScenes();
@@ -439,7 +444,7 @@ const SceneConfigUI = () => {
     setFormData({
       name: '新建场景',
       priority: 0,
-      enabled: true,
+      enabled: 0,
       device_type: '',
       config: {
         conditioner: {
@@ -473,7 +478,7 @@ const SceneConfigUI = () => {
     setFormData({
       name: scene.name,
       priority: scene.priority || 0,
-      enabled: scene.enabled !== false, // 如果 enabled 未定义，默认为 true
+      enabled: scene.enabled || 0,
       device_type: scene.device_type,
       config: scene.config || {}
     });
@@ -601,7 +606,7 @@ const SceneConfigUI = () => {
       creator: creator,
       config: formData.config,  // 直接使用完整的config对象
       priority: formData.priority || 0,
-      enabled: formData.enabled ? 1 : 0  // 将boolean转换为int
+      enabled: formData.enabled || 0
     };
     console.log('创建新场景的payload:', payload);
     try {
@@ -623,9 +628,26 @@ const SceneConfigUI = () => {
     }));
   };
 
-  const handleViewDetail = (scene) => {
+  const handleViewDetail = async (scene) => {
     setSelectedScene(scene);
     setShowDetailModal(true);
+    
+    // 获取场景规则
+    try {
+      const response = await getAllRules(scene.scene_id);
+      // 确保response.data.data是数组
+      const rulesData = Array.isArray(response.data.data) ? response.data.data : [];
+      setSceneRules(prev => ({
+        ...prev,
+        [scene.scene_id]: rulesData
+      }));
+    } catch (error) {
+      console.error('获取场景规则失败:', error);
+      setSceneRules(prev => ({
+        ...prev,
+        [scene.scene_id]: []
+      }));
+    }
   };
 
   const handleDeviceConfigChange = (key, value) => {
@@ -675,8 +697,14 @@ const SceneConfigUI = () => {
       }
 
       const response = await executeActivate(sceneId, username);
-      console.log(response);
-      showSuccessTip('场景已激活');
+      // console.log(response);
+      if (response.data && response.data.code === 501) {
+        showErrorTip('操作失败，请先启用该场景');
+        return;
+      }
+      else {
+        showSuccessTip('场景已激活');
+      }
     } catch (error) {
       console.error('激活场景失败:', error);
       showErrorTip('激活场景失败');
@@ -692,6 +720,48 @@ const SceneConfigUI = () => {
     } catch (error) {
       console.error('停用场景失败:', error);
       showErrorTip('停用场景失败');
+    }
+  };
+
+  // 编辑规则按钮点击事件
+  const handleEditRule = async (scene) => {
+    setEditingRuleScene(scene);
+    setShowRuleModal(true);
+    // 获取规则（如果未获取过）
+    if (!sceneRules[scene.scene_id]) {
+      try {
+        const response = await getAllRules(scene.scene_id);
+        const rulesArr = Array.isArray(response.data.data) ? response.data.data : [];
+        setSceneRules(prev => ({
+          ...prev,
+          [scene.scene_id]: rulesArr
+        }));
+        // 初始化本地编辑状态
+        const editStates = {};
+        rulesArr.forEach(rule => {
+          editStates[rule.rule_id] = {
+            priority: rule.priority,
+            enabled: rule.enabled,
+            condition: typeof rule.condition === 'string' ? rule.condition : JSON.stringify(rule.condition, null, 2)
+          };
+        });
+        setRuleEditStates(editStates);
+      } catch (error) {
+        setSceneRules(prev => ({ ...prev, [scene.scene_id]: [] }));
+        setRuleEditStates({});
+      }
+    } else {
+      // 已有规则，直接初始化本地编辑状态
+      const rulesArr = sceneRules[scene.scene_id];
+      const editStates = {};
+      rulesArr.forEach(rule => {
+        editStates[rule.rule_id] = {
+          priority: rule.priority,
+          enabled: rule.enabled,
+          condition: typeof rule.condition === 'string' ? rule.condition : JSON.stringify(rule.condition, null, 2)
+        };
+      });
+      setRuleEditStates(editStates);
     }
   };
 
@@ -1105,12 +1175,168 @@ const SceneConfigUI = () => {
     }
   };
 
+  const renderRules = (sceneId) => {
+    const rules = sceneRules[sceneId];
+    // 确保rules是数组
+    if (!Array.isArray(rules) || rules.length === 0) {
+      return (
+        <DeviceInfo>
+          <DeviceTitle>场景规则</DeviceTitle>
+          <InfoItem>
+            <InfoValue>暂无规则配置</InfoValue>
+          </InfoItem>
+        </DeviceInfo>
+      );
+    }
+
+    // 辅助函数：获取操作符的中文描述
+    const getOperatorText = (operator) => {
+      const operatorMap = {
+        'gt': '大于',
+        'lt': '小于',
+        'gte': '大于等于',
+        'lte': '小于等于',
+        'eq': '等于',
+        'ne': '不等于',
+        'range': '范围'
+      };
+      return operatorMap[operator] || operator;
+    };
+
+    // 辅助函数：获取星期的中文描述
+    const getWeekdayText = (weekday) => {
+      const weekdayMap = {
+        1: '周一',
+        2: '周二',
+        3: '周三',
+        4: '周四',
+        5: '周五',
+        6: '周六',
+        7: '周日'
+      };
+      return weekdayMap[weekday] || weekday;
+    };
+
+    return (
+      <DeviceInfo>
+        <DeviceTitle>场景规则</DeviceTitle>
+        {rules.map((rule, index) => {
+          // 解析条件JSON
+          let condition = {};
+          try {
+            condition = typeof rule.condition === 'string' ? JSON.parse(rule.condition) : rule.condition;
+          } catch (e) {
+            console.error('解析规则条件失败:', e);
+            condition = {};
+          }
+
+          return (
+            <InfoItem key={rule.rule_id || index}>
+              <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <InfoLabel>规则 {index + 1}</InfoLabel>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <StatusBadge enabled={rule.enabled === 1}>
+                      {rule.enabled === 1 ? '已启用' : '已禁用'}
+                    </StatusBadge>
+                    <PriorityBadge>
+                      优先级：{rule.priority || 0}
+                    </PriorityBadge>
+                  </div>
+                </div>
+                <div style={{ marginLeft: '10px' }}>
+                  {/* 温度条件 */}
+                  {condition.temperature && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>温度条件：</InfoLabel>
+                      {condition.temperature.operator === 'range' ? (
+                        <InfoValue>
+                          {condition.temperature.min}°C ~ {condition.temperature.max}°C
+                        </InfoValue>
+                      ) : (
+                        <InfoValue>
+                          {getOperatorText(condition.temperature.operator)} {condition.temperature.value}°C
+                        </InfoValue>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 光照条件 */}
+                  {condition.illumination && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>光照条件：</InfoLabel>
+                      {condition.illumination.operator === 'range' ? (
+                        <InfoValue>
+                          {condition.illumination.min} lux ~ {condition.illumination.max} lux
+                        </InfoValue>
+                      ) : (
+                        <InfoValue>
+                          {getOperatorText(condition.illumination.operator)} {condition.illumination.value} lux
+                        </InfoValue>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 湿度条件 */}
+                  {condition.humidity && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>湿度条件：</InfoLabel>
+                      {condition.humidity.operator === 'range' ? (
+                        <InfoValue>
+                          {condition.humidity.min}% ~ {condition.humidity.max}%
+                        </InfoValue>
+                      ) : (
+                        <InfoValue>
+                          {getOperatorText(condition.humidity.operator)} {condition.humidity.value}%
+                        </InfoValue>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 时间条件 */}
+                  {condition.time && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>时间条件：</InfoLabel>
+                      <InfoValue>
+                        {condition.time.start} ~ {condition.time.end}
+                      </InfoValue>
+                    </div>
+                  )}
+
+                  {/* 星期条件 */}
+                  {condition.week && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>星期条件：</InfoLabel>
+                      <InfoValue>
+                        {condition.week.map(getWeekdayText).join('、')}
+                      </InfoValue>
+                    </div>
+                  )}
+
+                  {/* 日期条件 */}
+                  {condition.date && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>日期条件：</InfoLabel>
+                      <InfoValue>
+                        {condition.date.start} 至 {condition.date.end}
+                      </InfoValue>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </InfoItem>
+          );
+        })}
+      </DeviceInfo>
+    );
+  };
+
   return (
     <PageContainer>
       <Container>
-        <h1>场景配置</h1>
-        <Button onClick={handleCreateScene}>创建新场景</Button>
-        <SceneList>
+      <h1>场景配置</h1>
+      <Button onClick={handleCreateScene}>创建新场景</Button>
+      <SceneList>
           {scenes.map(scene => (
             <SceneCard 
               key={scene.scene_id} 
@@ -1135,32 +1361,32 @@ const SceneConfigUI = () => {
               {currentSceneId === scene.scene_id && (
                 <ActiveBadge>当前场景</ActiveBadge>
               )}
-              <h3>{scene.name}</h3>
-              <ButtonGroup>
-                <Button onClick={() => handleViewDetail(scene)}>查看详情</Button>
+            <h3>{scene.name}</h3>
+            <ButtonGroup>
+              <Button onClick={() => handleViewDetail(scene)}>查看详情</Button>
                 <Button onClick={() => handleEditScene(scene)}>编辑场景</Button>
-                <Button>编辑规则</Button>
+                <Button onClick={() => handleEditRule(scene)}>编辑规则</Button>
                 <DeleteButton onClick={() => handleDeleteScene(scene.scene_id)}>删除</DeleteButton>
-              </ButtonGroup>
-            </SceneCard>
-          ))}
-        </SceneList>
+            </ButtonGroup>
+          </SceneCard>
+        ))}
+      </SceneList>
 
-        {showModal && (
-          <Modal>
-            <ModalContent>
-              <h2>{editingScene ? '编辑场景' : '创建场景'}</h2>
-              <Form onSubmit={handleSubmit}>
+      {showModal && (
+        <Modal>
+          <ModalContent>
+            <h2>{editingScene ? '编辑场景' : '创建场景'}</h2>
+            <Form onSubmit={handleSubmit}>
                 <InputGroup>
                   <label>场景名称</label>
-                  <Input
-                    type="text"
-                    name="name"
-                    placeholder="场景名称"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
+              <Input
+                type="text"
+                name="name"
+                placeholder="场景名称"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+              />
                 </InputGroup>
                 <InputGroup>
                   <label>优先级</label>
@@ -1175,41 +1401,41 @@ const SceneConfigUI = () => {
                   />
                   <EnableButton
                     type="button"
-                    enabled={formData.enabled}
+                    enabled={formData.enabled === 1}
                     onClick={() => setFormData(prev => ({
                       ...prev,
-                      enabled: !prev.enabled
+                      enabled: prev.enabled === 1 ? 0 : 1
                     }))}
                   >
-                    {formData.enabled ? '禁用场景' : '启用场景'}
+                    {formData.enabled === 1 ? '禁用场景' : '启用场景'}
                   </EnableButton>
                 </InputGroup>
-                <Select
-                  name="device_type"
-                  value={formData.device_type}
-                  onChange={handleInputChange}
-                >
+              <Select
+                name="device_type"
+                value={formData.device_type}
+                onChange={handleInputChange}
+              >
                   <option value="">选择设备类型（可选）</option>
-                  {Object.values(DEVICE_TYPES).map(type => (
+                {Object.values(DEVICE_TYPES).map(type => (
                     <option key={type} value={type}>{DEVICE_TYPES_CN[type]}</option>
-                  ))}
-                </Select>
+                ))}
+              </Select>
                 {renderDeviceConfig()}
-                <ButtonGroup>
-                  <Button type="submit">保存</Button>
-                  <Button type="button" onClick={() => setShowModal(false)}>取消</Button>
-                </ButtonGroup>
-              </Form>
-            </ModalContent>
-          </Modal>
-        )}
+              <ButtonGroup>
+                <Button type="submit">保存</Button>
+                <Button type="button" onClick={() => setShowModal(false)}>取消</Button>
+              </ButtonGroup>
+            </Form>
+          </ModalContent>
+        </Modal>
+      )}
 
-        {showDetailModal && selectedScene && (
-          <Modal>
-            <ModalContent>
+      {showDetailModal && selectedScene && (
+        <Modal>
+          <ModalContent>
               <SceneDetailHeader>
                 <SceneDetailTitle>
-                  <h2>场景详情：{selectedScene.name}</h2>
+            <h2>场景详情：{selectedScene.name}</h2>
                 </SceneDetailTitle>
                 <SceneStatus>
                   <StatusBadge enabled={selectedScene.enabled === 1}>
@@ -1220,19 +1446,252 @@ const SceneConfigUI = () => {
                   </PriorityBadge>
                 </SceneStatus>
               </SceneDetailHeader>
-              <div style={{ marginBottom: '20px', maxHeight: '60vh', overflow: 'auto', padding: '10px' }}>
-                {renderDeviceState('conditioner', selectedScene.config?.conditioner)}
-                {renderDeviceState('lamp', selectedScene.config?.lamp)}
-                {renderDeviceState('dehumidifier', selectedScene.config?.dehumidifier)}
-                {renderDeviceState('fan', selectedScene.config?.fan)}
-                {renderDeviceState('curtain', selectedScene.config?.curtain)}
-              </div>
-              <ButtonGroup>
-                <Button onClick={() => setShowDetailModal(false)}>关闭</Button>
-              </ButtonGroup>
-            </ModalContent>
-          </Modal>
-        )}
+            <div style={{ marginBottom: '20px', maxHeight: '60vh', overflow: 'auto', padding: '10px' }}>
+              {renderDeviceState('conditioner', selectedScene.config?.conditioner)}
+              {renderDeviceState('lamp', selectedScene.config?.lamp)}
+              {renderDeviceState('dehumidifier', selectedScene.config?.dehumidifier)}
+              {renderDeviceState('fan', selectedScene.config?.fan)}
+              {renderDeviceState('curtain', selectedScene.config?.curtain)}
+              {renderRules(selectedScene.scene_id)}
+            </div>
+            <ButtonGroup>
+              <Button onClick={() => setShowDetailModal(false)}>关闭</Button>
+            </ButtonGroup>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* 编辑规则模态框 */}
+      {showRuleModal && editingRuleScene && (
+        <Modal>
+          <ModalContent>
+            <h2>编辑规则 - {editingRuleScene.name}</h2>
+            <div style={{ maxHeight: '60vh', overflow: 'auto', padding: '10px' }}>
+              {((sceneRules[editingRuleScene.scene_id] || []).length === 0) ? (
+                // 没有任何规则时
+                newRule ? (
+                  <DeviceInfo>
+                    <DeviceTitle>新建规则</DeviceTitle>
+                    <InfoItem>
+                      <InfoLabel>优先级：</InfoLabel>
+                      <Input
+                        type="number"
+                        value={newRule.priority}
+                        min={0}
+                        max={100}
+                        onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
+                        style={{ width: 80 }}
+                      />
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>启用：</InfoLabel>
+                      <EnableButton
+                        type="button"
+                        enabled={newRule.enabled === 1}
+                        onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
+                      >
+                        {newRule.enabled === 1 ? '禁用' : '启用'}
+                      </EnableButton>
+                    </InfoItem>
+                    <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <InfoLabel>条件（JSON）：</InfoLabel>
+                      <textarea
+                        value={newRule.condition}
+                        onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
+                        rows={6}
+                        style={{ width: '100%', fontFamily: 'monospace', marginTop: 4 }}
+                      />
+                    </InfoItem>
+                  </DeviceInfo>
+                ) : (
+                  <Button onClick={() => setNewRule({ priority: 0, enabled: 1, condition: '{\n  \"temperature\": {\n    \"operator\": \"gt\", \n    \"value\": 25\n  }\n}' })} style={{ marginTop: 16 }}>+ 创建新规则</Button>
+                )
+              ) : (
+                <>
+                  {(sceneRules[editingRuleScene.scene_id] || []).map((rule, idx) => {
+                    const editState = ruleEditStates[rule.rule_id] || {};
+                    return (
+                      <DeviceInfo key={rule.rule_id} style={{ position: 'relative' }}>
+                        {/* 删除按钮 */}
+                        <Button
+                          style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(220,53,69,0.8)' }}
+                          onClick={async () => {
+                            if (window.confirm('确定要删除该规则吗？')) {
+                              try {
+                                await removeRule(rule.rule_id);
+                                showSuccessTip('规则已删除');
+                                // 刷新规则列表
+                                const response = await getAllRules(editingRuleScene.scene_id);
+                                setSceneRules(prev => ({
+                                  ...prev,
+                                  [editingRuleScene.scene_id]: Array.isArray(response.data.data) ? response.data.data : []
+                                }));
+                              } catch (e) {
+                                showErrorTip('规则删除失败');
+                              }
+                            }
+                          }}
+                        >删除</Button>
+                        <DeviceTitle>规则 {idx + 1}</DeviceTitle>
+                        <InfoItem>
+                          <InfoLabel>优先级：</InfoLabel>
+                          <Input
+                            type="number"
+                            value={editState.priority}
+                            min={0}
+                            max={100}
+                            onChange={e => setRuleEditStates(prev => ({
+                              ...prev,
+                              [rule.rule_id]: { ...prev[rule.rule_id], priority: Number(e.target.value) }
+                            }))}
+                            style={{ width: 80 }}
+                          />
+                        </InfoItem>
+                        <InfoItem>
+                          <InfoLabel>启用：</InfoLabel>
+                          <EnableButton
+                            type="button"
+                            enabled={editState.enabled === 1}
+                            onClick={() => setRuleEditStates(prev => ({
+                              ...prev,
+                              [rule.rule_id]: { ...prev[rule.rule_id], enabled: editState.enabled === 1 ? 0 : 1 }
+                            }))}
+                          >
+                            {editState.enabled === 1 ? '禁用' : '启用'}
+                          </EnableButton>
+                        </InfoItem>
+                        <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                          <InfoLabel>条件（JSON）：</InfoLabel>
+                          <textarea
+                            value={editState.condition}
+                            onChange={e => setRuleEditStates(prev => ({
+                              ...prev,
+                              [rule.rule_id]: { ...prev[rule.rule_id], condition: e.target.value }
+                            }))}
+                            rows={6}
+                            style={{ width: '100%', fontFamily: 'monospace', marginTop: 4 }}
+                          />
+                        </InfoItem>
+                      </DeviceInfo>
+                    );
+                  })}
+                  {newRule ? (
+                    <DeviceInfo>
+                      <DeviceTitle>新建规则</DeviceTitle>
+                      <InfoItem>
+                        <InfoLabel>优先级：</InfoLabel>
+                        <Input
+                          type="number"
+                          value={newRule.priority}
+                          min={0}
+                          max={100}
+                          onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
+                          style={{ width: 80 }}
+                        />
+                      </InfoItem>
+                      <InfoItem>
+                        <InfoLabel>启用：</InfoLabel>
+                        <EnableButton
+                          type="button"
+                          enabled={newRule.enabled === 1}
+                          onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
+                        >
+                          {newRule.enabled === 1 ? '禁用' : '启用'}
+                        </EnableButton>
+                      </InfoItem>
+                      <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <InfoLabel>条件（JSON）：</InfoLabel>
+                        <textarea
+                          value={newRule.condition}
+                          onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
+                          rows={6}
+                          style={{ width: '100%', fontFamily: 'monospace', marginTop: 4 }}
+                        />
+                      </InfoItem>
+                    </DeviceInfo>
+                  ) : (
+                    <Button onClick={() => setNewRule({ priority: 0, enabled: 1, condition: '{\n  \"temperature\": {\n    \"operator\": \"gt\", \n    \"value\": 25\n  }\n}' })} style={{ marginTop: 16 }}>+ 创建新规则</Button>
+                  )}
+                </>
+              )}
+            </div>
+            <ButtonGroup>
+              <Button
+                onClick={async () => {
+                  const rules = sceneRules[editingRuleScene.scene_id] || [];
+                  let hasError = false;
+                  for (const rule of rules) {
+                    const editState = ruleEditStates[rule.rule_id];
+                    if (!editState) continue;
+                    // 优先级
+                    if (editState.priority !== rule.priority) {
+                      try {
+                        await ruleUpdateField(rule.scene_id, rule.rule_id, 'priority', editState.priority);
+                      } catch (e) {
+                        showErrorTip(`规则${rule.rule_id}优先级保存失败`);
+                        hasError = true;
+                      }
+                    }
+                    // 启用
+                    if (editState.enabled !== rule.enabled) {
+                      try {
+                        await ruleUpdateField(rule.scene_id, rule.rule_id, 'enabled', editState.enabled);
+                      } catch (e) {
+                        showErrorTip(`规则${rule.rule_id}启用状态保存失败`);
+                        hasError = true;
+                      }
+                    }
+                    // condition
+                    try {
+                      let condObj = editState.condition;
+                      if (typeof condObj === 'string') {
+                        condObj = JSON.parse(condObj);
+                      }
+                      if (JSON.stringify(condObj) !== JSON.stringify(rule.condition)) {
+                        await ruleUpdateField(rule.scene_id, rule.rule_id, 'condition', condObj);
+                      }
+                    } catch (e) {
+                      showErrorTip(`规则${rule.rule_id}条件保存失败，格式需为合法JSON`);
+                      hasError = true;
+                    }
+                  }
+                  // 新建规则
+                  if (newRule) {
+                    try {
+                      let condObj = newRule.condition;
+                      if (typeof condObj === 'string') {
+                        condObj = JSON.parse(condObj);
+                      }
+                      await addRule(
+                        editingRuleScene.scene_id,
+                        condObj,
+                        newRule.priority,
+                        newRule.enabled
+                      );
+                      showSuccessTip('新规则已创建');
+                      setNewRule(null);
+                    } catch (e) {
+                      showErrorTip('新规则创建失败，条件需为合法JSON');
+                      hasError = true;
+                    }
+                  }
+                  if (!hasError) {
+                    showSuccessTip('所有规则已保存');
+                    // 可选：刷新规则列表
+                    const response = await getAllRules(editingRuleScene.scene_id);
+                    setSceneRules(prev => ({
+                      ...prev,
+                      [editingRuleScene.scene_id]: Array.isArray(response.data.data) ? response.data.data : []
+                    }));
+                    setShowRuleModal(false);
+                  }
+                }}
+              >保存</Button>
+              <Button onClick={() => setShowRuleModal(false)}>关闭</Button>
+            </ButtonGroup>
+          </ModalContent>
+        </Modal>
+      )}
       </Container>
     </PageContainer>
   );

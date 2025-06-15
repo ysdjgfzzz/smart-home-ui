@@ -47,12 +47,15 @@ export const getSceneById = async (sceneId) => {
 };
 
 // 规则配置相关接口
-export const addRule = async (sceneId, ruleData) => {
-  return axios.post(`${API_URL}/config/rule/add`, { scene_id: sceneId, ...ruleData });
+export const addRule = async (scene_id, condition, priority, enabled) => {
+  const payload = { scene_id, condition, priority, enabled };
+  return axios.post(`${API_URL}/config/rule/add`, payload, {
+    headers: { 'Content-Type': 'application/json' }
+  });
 };
 
-export const removeRule = async (sceneId, ruleId) => {
-  return axios.post(`${API_URL}/config/rule/remove`, { scene_id: sceneId, rule_id: ruleId });
+export const removeRule = async (ruleId) => {
+  return axios.post(`${API_URL}/config/rule/remove`, { rule_id: ruleId });
 };
 
 export const updateRule = async (sceneId, ruleId, ruleData) => {
@@ -71,6 +74,14 @@ export const getRuleById = async (sceneId, ruleId) => {
   return axios.post(`${API_URL}/config/rule/findById`, { 
     scene_id: sceneId, 
     rule_id: ruleId 
+  });
+};
+
+// 规则字段更新接口
+export const ruleUpdateField = async (scene_id, rule_id, field, value) => {
+  const payload = { scene_id, rule_id, field, value };
+  return await axios.post(`${API_URL}/config/rule/update/field`, payload, {
+    headers: { 'Content-Type': 'application/json' }
   });
 };
 
