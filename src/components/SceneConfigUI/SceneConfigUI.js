@@ -1464,44 +1464,104 @@ const SceneConfigUI = () => {
       {/* 编辑规则模态框 */}
       {showRuleModal && editingRuleScene && (
         <Modal>
-          <ModalContent>
-            <h2>编辑规则 - {editingRuleScene.name}</h2>
-            <div style={{ maxHeight: '60vh', overflow: 'auto', padding: '10px' }}>
+          <ModalContent style={{ maxWidth: '700px', width: '95%' }}>
+            <div style={{ 
+              borderBottom: '1px solid rgba(255, 255, 255, 0.2)', 
+              paddingBottom: '15px', 
+              marginBottom: '20px' 
+            }}>
+              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>编辑规则 - {editingRuleScene.name}</h2>
+            </div>
+            <div style={{ 
+              marginBottom: '20px', 
+              maxHeight: '65vh', 
+              overflow: 'auto', 
+              padding: '0 5px',
+              scrollbarWidth: 'thin'
+            }}>
               {((sceneRules[editingRuleScene.scene_id] || []).length === 0) ? (
                 // 没有任何规则时
                 newRule ? (
                   <DeviceInfo>
                     <DeviceTitle>新建规则</DeviceTitle>
-                    <InfoItem>
-                      <InfoLabel>优先级：</InfoLabel>
-                      <Input
-                        type="number"
-                        value={newRule.priority}
-                        min={0}
-                        max={100}
-                        onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
-                        style={{ width: 80 }}
-                      />
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>启用：</InfoLabel>
-                      <EnableButton
-                        type="button"
-                        enabled={newRule.enabled === 1}
-                        onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
-                      >
-                        {newRule.enabled === 1 ? '禁用' : '启用'}
-                      </EnableButton>
-                    </InfoItem>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                         <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                           <InfoLabel style={{ marginBottom: '8px' }}>优先级：</InfoLabel>
+                           <Input
+                             type="number"
+                             value={newRule.priority}
+                             min={0}
+                             max={100}
+                             onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
+                             style={{ width: '100%', padding: '8px 12px', maxWidth: '120px' }}
+                           />
+                         </InfoItem>
+                         <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                           <InfoLabel style={{ marginBottom: '8px' }}>启用状态：</InfoLabel>
+                           <EnableButton
+                             type="button"
+                             enabled={newRule.enabled === 1}
+                             onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
+                             style={{ width: '100%', maxWidth: '100px', fontSize: '14px', padding: '8px 4px' }}
+                           >
+                             {newRule.enabled === 1 ? '启用' : '禁用'}
+                           </EnableButton>
+                         </InfoItem>
+                       </div>
                     <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                      <InfoLabel>条件（JSON）：</InfoLabel>
-                      <textarea
-                        value={newRule.condition}
-                        onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
-                        rows={6}
-                        style={{ width: '100%', fontFamily: 'monospace', marginTop: 4 }}
-                      />
-                    </InfoItem>
+                         <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                           <InfoLabel>条件（JSON格式）：</InfoLabel>
+                           <select
+                             onChange={e => {
+                               if (e.target.value) {
+                                 const templates = {
+                                   temperature: '{\n  "temperature": {\n    "operator": "gt",\n    "value": 25\n  }\n}',
+                                   humidity: '{\n  "humidity": {\n    "max": 60,\n    "min": 40,\n    "operator": "range"\n  }\n}',
+                                   light: '{\n  "light": {\n    "operator": "lt",\n    "value": 300\n  }\n}',
+                                   motion: '{\n  "motion": {\n    "operator": "eq",\n    "value": true\n  }\n}'
+                                 };
+                                 setNewRule(prev => ({ ...prev, condition: templates[e.target.value] }));
+                                 e.target.value = '';
+                               }
+                             }}
+                             style={{
+                               padding: '6px 12px',
+                               borderRadius: '4px',
+                               border: '1px solid rgba(255, 255, 255, 0.3)',
+                               background: 'rgba(0, 0, 0, 0.2)',
+                               color: 'white',
+                               fontSize: '14px'
+                             }}
+                           >
+                             <option value="">选择条件模板...</option>
+                             <option value="temperature">温度条件</option>
+                             <option value="humidity">湿度条件</option>
+                             <option value="light">光照条件</option>
+                             <option value="motion">运动检测</option>
+                           </select>
+                         </div>
+                         <textarea
+                           value={newRule.condition}
+                           onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
+                           rows={8}
+                           style={{ 
+                             width: '100%', 
+                             maxWidth: '100%',
+                             boxSizing: 'border-box',
+                             fontFamily: 'Consolas, Monaco, monospace', 
+                             fontSize: '14px',
+                             padding: '12px',
+                             border: '1px solid rgba(255, 255, 255, 0.3)',
+                             borderRadius: '6px',
+                             background: 'rgba(0, 0, 0, 0.2)',
+                             color: 'white',
+                             resize: 'vertical',
+                             minHeight: '120px',
+                             overflow: 'auto'
+                           }}
+                           placeholder="请输入JSON格式的条件..."
+                         />
+                       </InfoItem>
                   </DeviceInfo>
                 ) : (
                   <Button onClick={() => setNewRule({ priority: 0, enabled: 1, condition: '{\n  \"temperature\": {\n    \"operator\": \"gt\", \n    \"value\": 25\n  }\n}' })} style={{ marginTop: 16 }}>+ 创建新规则</Button>
@@ -1532,44 +1592,105 @@ const SceneConfigUI = () => {
                             }
                           }}
                         >删除</Button>
-                        <DeviceTitle>规则 {idx + 1}</DeviceTitle>
-                        <InfoItem>
-                          <InfoLabel>优先级：</InfoLabel>
-                          <Input
-                            type="number"
-                            value={editState.priority}
-                            min={0}
-                            max={100}
-                            onChange={e => setRuleEditStates(prev => ({
-                              ...prev,
-                              [rule.rule_id]: { ...prev[rule.rule_id], priority: Number(e.target.value) }
-                            }))}
-                            style={{ width: 80 }}
-                          />
-                        </InfoItem>
-                        <InfoItem>
-                          <InfoLabel>启用：</InfoLabel>
-                          <EnableButton
-                            type="button"
-                            enabled={editState.enabled === 1}
-                            onClick={() => setRuleEditStates(prev => ({
-                              ...prev,
-                              [rule.rule_id]: { ...prev[rule.rule_id], enabled: editState.enabled === 1 ? 0 : 1 }
-                            }))}
-                          >
-                            {editState.enabled === 1 ? '禁用' : '启用'}
-                          </EnableButton>
-                        </InfoItem>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                          <DeviceTitle style={{ margin: 0 }}>规则 {idx + 1}</DeviceTitle>
+                          <div style={{ 
+                            background: 'rgba(255, 255, 255, 0.1)', 
+                            padding: '4px 8px', 
+                            borderRadius: '4px', 
+                            fontSize: '12px' 
+                          }}>
+                            ID: {rule.rule_id}
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                          <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <InfoLabel style={{ marginBottom: '8px' }}>优先级：</InfoLabel>
+                            <Input
+                              type="number"
+                              value={editState.priority}
+                              min={0}
+                              max={100}
+                              onChange={e => setRuleEditStates(prev => ({
+                                ...prev,
+                                [rule.rule_id]: { ...prev[rule.rule_id], priority: Number(e.target.value) }
+                              }))}
+                              style={{ width: '100%', padding: '8px 12px', maxWidth: '120px' }}
+                            />
+                          </InfoItem>
+                          <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <InfoLabel style={{ marginBottom: '8px' }}>启用状态：</InfoLabel>
+                            <EnableButton
+                              type="button"
+                              enabled={editState.enabled === 1}
+                              onClick={() => setRuleEditStates(prev => ({
+                                ...prev,
+                                [rule.rule_id]: { ...prev[rule.rule_id], enabled: editState.enabled === 1 ? 0 : 1 }
+                              }))}
+                              style={{ width: '100%', maxWidth: '100px', fontSize: '14px', padding: '8px 4px' }}
+                            >
+                              {editState.enabled === 1 ? '启用' : '禁用'}
+                            </EnableButton>
+                          </InfoItem>
+                        </div>
                         <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                          <InfoLabel>条件（JSON）：</InfoLabel>
+                          <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <InfoLabel>条件（JSON格式）：</InfoLabel>
+                            <select
+                              onChange={e => {
+                                if (e.target.value) {
+                                  const templates = {
+                                    temperature: '{\n  "temperature": {\n    "operator": "gt",\n    "value": 25\n  }\n}',
+                                    humidity: '{\n  "humidity": {\n    "max": 60,\n    "min": 40,\n    "operator": "range"\n  }\n}',
+                                    light: '{\n  "light": {\n    "operator": "lt",\n    "value": 300\n  }\n}',
+                                    motion: '{\n  "motion": {\n    "operator": "eq",\n    "value": true\n  }\n}'
+                                  };
+                                  setRuleEditStates(prev => ({
+                                    ...prev,
+                                    [rule.rule_id]: { ...prev[rule.rule_id], condition: templates[e.target.value] }
+                                  }));
+                                  e.target.value = '';
+                                }
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255, 255, 255, 0.3)',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                color: 'white',
+                                fontSize: '14px'
+                              }}
+                            >
+                              <option value="">选择条件模板...</option>
+                              <option value="temperature">温度条件</option>
+                              <option value="humidity">湿度条件</option>
+                              <option value="light">光照条件</option>
+                              <option value="motion">运动检测</option>
+                            </select>
+                          </div>
                           <textarea
                             value={editState.condition}
                             onChange={e => setRuleEditStates(prev => ({
                               ...prev,
                               [rule.rule_id]: { ...prev[rule.rule_id], condition: e.target.value }
                             }))}
-                            rows={6}
-                            style={{ width: '100%', fontFamily: 'monospace', marginTop: 4 }}
+                            rows={8}
+                            style={{ 
+                              width: '100%', 
+                              maxWidth: '100%',
+                              boxSizing: 'border-box',
+                              fontFamily: 'Consolas, Monaco, monospace', 
+                              fontSize: '14px',
+                              padding: '12px',
+                              border: '1px solid rgba(255, 255, 255, 0.3)',
+                              borderRadius: '6px',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'white',
+                              resize: 'vertical',
+                              minHeight: '120px',
+                              overflow: 'auto'
+                            }}
+                            placeholder="请输入JSON格式的条件..."
                           />
                         </InfoItem>
                       </DeviceInfo>
@@ -1577,37 +1698,123 @@ const SceneConfigUI = () => {
                   })}
                   {newRule ? (
                     <DeviceInfo>
-                      <DeviceTitle>新建规则</DeviceTitle>
-                      <InfoItem>
-                        <InfoLabel>优先级：</InfoLabel>
-                        <Input
-                          type="number"
-                          value={newRule.priority}
-                          min={0}
-                          max={100}
-                          onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
-                          style={{ width: 80 }}
-                        />
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>启用：</InfoLabel>
-                        <EnableButton
-                          type="button"
-                          enabled={newRule.enabled === 1}
-                          onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
-                        >
-                          {newRule.enabled === 1 ? '禁用' : '启用'}
-                        </EnableButton>
-                      </InfoItem>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                        <DeviceTitle style={{ margin: 0 }}>新建规则</DeviceTitle>
+                        <div style={{ 
+                          background: 'rgba(34, 197, 94, 0.2)', 
+                          padding: '4px 8px', 
+                          borderRadius: '4px', 
+                          fontSize: '12px',
+                          color: '#22c55e'
+                        }}>
+                          新规则
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                        <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                          <InfoLabel style={{ marginBottom: '8px' }}>优先级：</InfoLabel>
+                          <Input
+                            type="number"
+                            value={newRule.priority}
+                            min={0}
+                            max={100}
+                            onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
+                            style={{ width: '100%', padding: '8px 12px', maxWidth: '120px' }}
+                          />
+                        </InfoItem>
+                        <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                          <InfoLabel style={{ marginBottom: '8px' }}>启用状态：</InfoLabel>
+                          <EnableButton
+                            type="button"
+                            enabled={newRule.enabled === 1}
+                            onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
+                            style={{ width: '100%', maxWidth: '100px', fontSize: '14px', padding: '8px 4px' }}
+                          >
+                            {newRule.enabled === 1 ? '启用' : '禁用'}
+                          </EnableButton>
+                        </InfoItem>
+                      </div>
                       <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <InfoLabel>条件（JSON）：</InfoLabel>
+                        <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <InfoLabel>条件（JSON格式）：</InfoLabel>
+                          <select
+                            onChange={e => {
+                              if (e.target.value) {
+                                const templates = {
+                                  temperature: '{\n  "temperature": {\n    "operator": "gt",\n    "value": 25\n  }\n}',
+                                  humidity: '{\n  "humidity": {\n    "max": 60,\n    "min": 40,\n    "operator": "range"\n  }\n}',
+                                  light: '{\n  "light": {\n    "operator": "lt",\n    "value": 300\n  }\n}',
+                                  motion: '{\n  "motion": {\n    "operator": "eq",\n    "value": true\n  }\n}'
+                                };
+                                setNewRule(prev => ({ ...prev, condition: templates[e.target.value] }));
+                                e.target.value = '';
+                              }
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.3)',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              color: 'white',
+                              fontSize: '14px'
+                            }}
+                          >
+                            <option value="">选择条件模板...</option>
+                            <option value="temperature">温度条件</option>
+                            <option value="humidity">湿度条件</option>
+                            <option value="light">光照条件</option>
+                            <option value="motion">运动检测</option>
+                          </select>
+                        </div>
                         <textarea
                           value={newRule.condition}
                           onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
-                          rows={6}
-                          style={{ width: '100%', fontFamily: 'monospace', marginTop: 4 }}
+                          rows={8}
+                          style={{ 
+                            width: '100%', 
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            fontFamily: 'Consolas, Monaco, monospace', 
+                            fontSize: '14px',
+                            padding: '12px',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            borderRadius: '6px',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            color: 'white',
+                            resize: 'vertical',
+                            minHeight: '120px',
+                            overflow: 'auto'
+                          }}
+                          placeholder="请输入JSON格式的条件..."
                         />
                       </InfoItem>
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '12px', 
+                        marginTop: '20px',
+                        paddingTop: '15px',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <Button
+                          onClick={() => {
+                            // 这里可以添加验证逻辑
+                            showSuccessTip('规则已准备就绪，点击保存按钮完成创建');
+                          }}
+                          style={{ flex: 1 }}
+                        >
+                          验证规则
+                        </Button>
+                        <Button
+                          onClick={() => setNewRule(null)}
+                          style={{ 
+                            flex: 1,
+                            background: 'rgba(108, 117, 125, 0.3)',
+                            borderColor: 'rgba(108, 117, 125, 0.5)'
+                          }}
+                        >
+                          取消创建
+                        </Button>
+                      </div>
                     </DeviceInfo>
                   ) : (
                     <Button onClick={() => setNewRule({ priority: 0, enabled: 1, condition: '{\n  \"temperature\": {\n    \"operator\": \"gt\", \n    \"value\": 25\n  }\n}' })} style={{ marginTop: 16 }}>+ 创建新规则</Button>
@@ -1615,7 +1822,13 @@ const SceneConfigUI = () => {
                 </>
               )}
             </div>
-            <ButtonGroup>
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '20px',
+              paddingTop: '20px',
+              borderTop: '2px solid rgba(255, 255, 255, 0.1)'
+            }}>
               <Button
                 onClick={async () => {
                   const rules = sceneRules[editingRuleScene.scene_id] || [];
@@ -1686,13 +1899,65 @@ const SceneConfigUI = () => {
                     setShowRuleModal(false);
                   }
                 }}
-              >保存</Button>
-              <Button onClick={() => setShowRuleModal(false)}>关闭</Button>
-            </ButtonGroup>
+                style={{ 
+                  flex: 1,
+                  background: 'rgba(34, 197, 94, 0.3)',
+                  borderColor: 'rgba(34, 197, 94, 0.5)',
+                  fontSize: '16px',
+                  padding: '12px 24px'
+                }}
+              >💾 保存所有规则</Button>
+              <Button 
+                onClick={() => setShowRuleModal(false)}
+                style={{ 
+                  flex: 1,
+                  background: 'rgba(108, 117, 125, 0.3)',
+                  borderColor: 'rgba(108, 117, 125, 0.5)',
+                  fontSize: '16px',
+                  padding: '12px 24px'
+                }}
+              >❌ 关闭</Button>
+            </div>
           </ModalContent>
         </Modal>
       )}
       </Container>
+      
+      {/* 回收站按钮 */}
+      <Button
+        style={{
+          position: 'absolute',
+          bottom: '80px',
+          right: '80px',
+          width: '100px',
+          height: '100px',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: '2px solid rgba(255, 255, 255, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '40px',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          zIndex: 1000
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+          e.target.style.transform = 'scale(1.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+          e.target.style.transform = 'scale(1)';
+        }}
+        onClick={() => {
+          // 这里可以添加回收站功能
+          showSuccessTip('回收站功能待实现');
+        }}
+        title="回收站"
+      >
+        🗑️
+      </Button>
     </PageContainer>
   );
 };
