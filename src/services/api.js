@@ -93,13 +93,17 @@ export const executeActivate = async (sceneId, username) => {
   });
 };
 
-export const switchScene = async (sceneId) => {
-  return axios.post(`${API_URL}/execute/switch`, { scene_id: sceneId });
-};
-
 export const executeDeactivate = async () => {
   return axios.post(`${API_URL}/execute/deactivate`);
 };
+
+export const switchScene = async (sceneId,Username) => {
+  return axios.post(`${API_URL}/execute/switch`, { 
+    scene_id: sceneId,
+    username: Username
+   });
+};
+
 
 // 场景历史记录相关接口
 export const getAllBehaviors = async (sceneId) => {
