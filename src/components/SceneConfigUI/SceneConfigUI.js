@@ -376,6 +376,430 @@ const CardActionButtonWrapper = styled.div`
   z-index: 2;
 `;
 
+const ModalWeekCondition = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+// 条件模板定义
+const templates = {
+  // 温度条件模板
+  temperature: {
+    gt: '{\n  "temperature": {\n    "operator": "gt",\n    "value": 25\n  }\n}',
+    lt: '{\n  "temperature": {\n    "operator": "lt",\n    "value": 18\n  }\n}',
+    range: '{\n  "temperature": {\n    "operator": "range",\n    "min": 18,\n    "max": 26\n  }\n}'
+  },
+  // 湿度条件模板
+  humidity: {
+    gt: '{\n  "humidity": {\n    "operator": "gt",\n    "value": 60\n  }\n}',
+    lt: '{\n  "humidity": {\n    "operator": "lt",\n    "value": 40\n  }\n}',
+    range: '{\n  "humidity": {\n    "operator": "range",\n    "min": 40,\n    "max": 60\n  }\n}'
+  },
+  // 光照条件模板
+  illumination: {
+    gt: '{\n  "illumination": {\n    "operator": "gt",\n    "value": 300\n  }\n}',
+    lt: '{\n  "illumination": {\n    "operator": "lt",\n    "value": 50\n  }\n}',
+    range: '{\n  "illumination": {\n    "operator": "range",\n    "min": 50,\n    "max": 300\n  }\n}'
+  },
+  // 时间范围模板
+  time: '{\n  "time": {\n    "start": "08:00",\n    "end": "18:00"\n  }\n}',
+  // 星期范围模板
+  week: '{\n  "week": [1, 2, 3, 4, 5]\n}',
+  // 日期范围模板
+  date: '{\n  "date": {\n    "start": "2024-01-01",\n    "end": "2024-12-31"\n  }\n}'
+};
+
+// 新增：条件模板选择器组件
+const ConditionTemplateSelector = ({ 
+  value, 
+  onChange, 
+  timeCondition, 
+  setTimeCondition,
+  weekCondition,
+  setWeekCondition,
+  dateCondition,
+  setDateCondition,
+  temperatureCondition,
+  setTemperatureCondition,
+  humidityCondition,
+  setHumidityCondition,
+  lightCondition,
+  setLightCondition,
+  onConditionChange
+}) => {
+  // 渲染数值条件设置（温度、湿度、光照）
+  const renderNumericCondition = (type, condition, setCondition, templates) => {
+    const isRange = condition.operator === 'range';
+    
+    // 获取条件类型对应的单位
+    const getUnit = (type) => {
+      switch(type) {
+        case 'temperature':
+          return '°C';
+        case 'humidity':
+          return '%';
+        case 'illumination':
+          return 'lux';
+        default:
+          return '';
+      }
+    };
+
+    // 生成条件JSON字符串
+    const generateConditionJson = (type, operator, value, min, max) => {
+      if (operator === 'range') {
+        return `{\n  "${type}": {\n    "operator": "range",\n    "min": ${min},\n    "max": ${max}\n  }\n}`;
+      } else {
+        return `{\n  "${type}": {\n    "operator": "${operator}",\n    "value": ${value}\n  }\n}`;
+      }
+    };
+
+    return (
+      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select
+            value={condition.operator}
+            onChange={e => {
+              const operator = e.target.value;
+              let newCondition;
+              
+              if (operator === 'range') {
+                newCondition = { 
+                  operator, 
+                  min: condition.min || 0, 
+                  max: condition.max || 100,
+                  enabled: condition.enabled || false
+                };
+              } else {
+                newCondition = { 
+                  operator, 
+                  value: condition.value || 0,
+                  enabled: condition.enabled || false
+                };
+              }
+              
+              setCondition(newCondition);
+              
+              // 立即更新JSON
+              if (operator === 'range') {
+                onConditionChange(generateConditionJson(type, operator, null, newCondition.min, newCondition.max));
+              } else {
+                onConditionChange(generateConditionJson(type, operator, newCondition.value));
+              }
+            }}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '4px',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              background: 'rgba(0, 0, 0, 0.2)',
+              color: 'white',
+              fontSize: '14px',
+              width: '100px'
+            }}
+          >
+            <option value="gt">大于</option>
+            <option value="lt">小于</option>
+            <option value="gte">大于等于</option>
+            <option value="lte">小于等于</option>
+            <option value="eq">等于</option>
+            <option value="ne">不等于</option>
+            <option value="range">范围</option>
+          </select>
+          
+          {isRange ? (
+            <>
+              <input
+                type="number"
+                value={condition.min}
+                onChange={e => {
+                  const newCondition = { ...condition, min: Number(e.target.value) };
+                  setCondition(newCondition);
+                  onConditionChange(generateConditionJson(type, 'range', null, newCondition.min, newCondition.max));
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  color: 'white',
+                  fontSize: '14px',
+                  width: '80px'
+                }}
+                placeholder="最小值"
+              />
+              <span style={{ color: 'white' }}>{getUnit(type)}</span>
+              <span style={{ color: 'white' }}>至</span>
+              <input
+                type="number"
+                value={condition.max}
+                onChange={e => {
+                  const newCondition = { ...condition, max: Number(e.target.value) };
+                  setCondition(newCondition);
+                  onConditionChange(generateConditionJson(type, 'range', null, newCondition.min, newCondition.max));
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  color: 'white',
+                  fontSize: '14px',
+                  width: '80px'
+                }}
+                placeholder="最大值"
+              />
+              <span style={{ color: 'white' }}>{getUnit(type)}</span>
+            </>
+          ) : (
+            <>
+              <input
+                type="number"
+                value={condition.value}
+                onChange={e => {
+                  const newCondition = { ...condition, value: Number(e.target.value) };
+                  setCondition(newCondition);
+                  onConditionChange(generateConditionJson(type, newCondition.operator, newCondition.value));
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  color: 'white',
+                  fontSize: '14px',
+                  width: '80px'
+                }}
+                placeholder="数值"
+              />
+              <span style={{ color: 'white' }}>{getUnit(type)}</span>
+            </>
+          )}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', marginLeft: '8px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={condition.enabled || false}
+              onChange={e => {
+                const newCondition = { ...condition, enabled: e.target.checked };
+                setCondition(newCondition);
+              }}
+              style={{ marginRight: '4px' }}
+            />
+            启用
+          </label>
+        </div>
+      </div>
+    );
+  };
+
+  // 渲染时间范围设置
+  const renderTimeRange = () => {
+    return (
+      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="time"
+            value={timeCondition.start || '08:00'}
+            onChange={e => {
+              setTimeCondition(prev => ({
+                ...prev,
+                start: e.target.value
+              }));
+              onConditionChange(`{\n  "time": {\n    "start": "${e.target.value}",\n    "end": "${timeCondition.end || '18:00'}"\n  }\n}`);
+            }}
+            style={{ padding: '4px', borderRadius: '4px', border: '1px solid #666', background: '#333', color: 'white' }}
+          />
+          <span style={{ color: 'white' }}>至</span>
+          <input
+            type="time"
+            value={timeCondition.end || '18:00'}
+            onChange={e => {
+              setTimeCondition(prev => ({
+                ...prev,
+                end: e.target.value
+              }));
+              onConditionChange(`{\n  "time": {\n    "start": "${timeCondition.start || '08:00'}",\n    "end": "${e.target.value}"\n  }\n}`);
+            }}
+            style={{ padding: '4px', borderRadius: '4px', border: '1px solid #666', background: '#333', color: 'white' }}
+          />
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', marginLeft: '8px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={timeCondition.enabled}
+            onChange={e => {
+              const newTimeCondition = { ...timeCondition, enabled: !timeCondition.enabled };
+              setTimeCondition(newTimeCondition);
+            }}
+            style={{ marginRight: '4px' }}
+          />
+          启用
+        </label>
+      </div>
+    );
+  };
+
+  // 渲染星期范围设置
+  const renderWeekRange = () => {
+    const weekDays = Array.isArray(weekCondition.days) ? weekCondition.days : [];
+    
+    return (
+      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {[
+            { value: 1, label: '周一' },
+            { value: 2, label: '周二' },
+            { value: 3, label: '周三' },
+            { value: 4, label: '周四' },
+            { value: 5, label: '周五' },
+            { value: 6, label: '周六' },
+            { value: 7, label: '周日' }
+          ].map(day => (
+            <label key={day.value} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={weekDays.includes(day.value)}
+                onChange={e => {
+                  let newWeekDays;
+                  if (e.target.checked) {
+                    newWeekDays = [...weekDays, day.value].sort((a, b) => a - b);
+                  } else {
+                    newWeekDays = weekDays.filter(d => d !== day.value);
+                  }
+                  setWeekCondition(prev => ({
+                    ...prev,
+                    days: newWeekDays
+                  }));
+                  onConditionChange(`{\n  "week": [${newWeekDays.join(', ')}]\n}`);
+                }}
+                style={{ marginRight: '4px' }}
+              />
+              {day.label}
+            </label>
+          ))}
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', marginLeft: '8px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={weekCondition.enabled}
+            onChange={e => {
+              const newWeekCondition = { ...weekCondition, enabled: !weekCondition.enabled };
+              setWeekCondition(newWeekCondition);
+            }}
+            style={{ marginRight: '4px' }}
+          />
+          启用
+        </label>
+      </div>
+    );
+  };
+
+  // 渲染日期范围设置
+  const renderDateRange = () => {
+    return (
+      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="date"
+            value={dateCondition.start || '2024-01-01'}
+            onChange={e => {
+              setDateCondition(prev => ({
+                ...prev,
+                start: e.target.value
+              }));
+              onConditionChange(`{\n  "date": {\n    "start": "${e.target.value}",\n    "end": "${dateCondition.end || '2024-12-31'}"\n  }\n}`);
+            }}
+            style={{ padding: '4px', borderRadius: '4px', border: '1px solid #666', background: '#333', color: 'white' }}
+          />
+          <span style={{ color: 'white' }}>至</span>
+          <input
+            type="date"
+            value={dateCondition.end || '2024-12-31'}
+            onChange={e => {
+              setDateCondition(prev => ({
+                ...prev,
+                end: e.target.value
+              }));
+              onConditionChange(`{\n  "date": {\n    "start": "${dateCondition.start || '2024-01-01'}",\n    "end": "${e.target.value}"\n  }\n}`);
+            }}
+            style={{ padding: '4px', borderRadius: '4px', border: '1px solid #666', background: '#333', color: 'white' }}
+          />
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', marginLeft: '8px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={dateCondition.enabled}
+            onChange={e => {
+              const newDateCondition = { ...dateCondition, enabled: !dateCondition.enabled };
+              setDateCondition(newDateCondition);
+            }}
+            style={{ marginRight: '4px' }}
+          />
+          启用
+        </label>
+      </div>
+    );
+  };
+
+  return (
+    <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+      <InfoLabel style={{ marginBottom: '8px' }}>条件：</InfoLabel>
+      <select
+        value={value}
+        onChange={e => {
+          const selectedType = e.target.value;
+          onChange(selectedType);
+          
+          if (selectedType === 'time') {
+            // setTimeCondition({ start: '08:00', end: '18:00' });
+            onConditionChange(templates.time);
+          } else if (selectedType === 'week') {
+            // setWeekCondition({ days: [1, 2, 3, 4, 5], enabled: false });
+            onConditionChange(templates.week);
+          } else if (selectedType === 'date') {
+            // setDateCondition({ start: '2024-01-01', end: '2024-12-31' });
+            onConditionChange(templates.date);
+          } else if (selectedType === 'temperature') {
+            // setTemperatureCondition({ operator: 'gt', value: 25 });
+            onConditionChange(templates.temperature.gt);
+          } else if (selectedType === 'humidity') {
+            // setHumidityCondition({ operator: 'gt', value: 60 });
+            onConditionChange(templates.humidity.gt);
+          } else if (selectedType === 'illumination') {
+            // setLightCondition({ operator: 'lt', value: 300 });
+            onConditionChange(templates.illumination.lt);
+          }
+        }}
+        style={{
+          padding: '6px 12px',
+          borderRadius: '4px',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          background: 'rgba(0, 0, 0, 0.2)',
+          color: 'white',
+          fontSize: '14px'
+        }}
+      >
+        <option value="">选择条件</option>
+        <option value="time">时间范围</option>
+        <option value="week">星期范围</option>
+        <option value="date">日期范围</option>
+        <option value="temperature">温度条件</option>
+        <option value="humidity">湿度条件</option>
+        <option value="illumination">光照条件</option>
+      </select>
+
+      {/* 根据选择的条件类型显示相应的设置选项 */}
+      {value === 'temperature' && renderNumericCondition('temperature', temperatureCondition, setTemperatureCondition, templates.temperature)}
+      {value === 'humidity' && renderNumericCondition('humidity', humidityCondition, setHumidityCondition, templates.humidity)}
+      {value === 'illumination' && renderNumericCondition('illumination', lightCondition, setLightCondition, templates.illumination)}
+      {value === 'time' && renderTimeRange()}
+      {value === 'week' && renderWeekRange()}
+      {value === 'date' && renderDateRange()}
+    </InfoItem>
+  );
+};
+
 const SceneConfigUI = () => {
   const [scenes, setScenes] = useState(() => {
     // 初始化时尝试从 localStorage 获取缓存的场景数据
@@ -400,18 +824,18 @@ const SceneConfigUI = () => {
   const [ruleEditStates, setRuleEditStates] = useState({}); // 新增：规则编辑本地状态
   const [newRule, setNewRule] = useState(null); // 新增：新规则编辑状态
   const [selectedConditionType, setSelectedConditionType] = useState(''); // 新增：选中的条件类型
-  const [timeCondition, setTimeCondition] = useState({ start: '08:00', end: '18:00' }); // 新增：时间条件状态
+  const [timeCondition, setTimeCondition] = useState({ start: '08:00', end: '18:00', enabled: false }); // 新增：时间条件状态
   const [ruleConditionTypes, setRuleConditionTypes] = useState({}); // 新增：每个规则的条件类型
   const [ruleTimeConditions, setRuleTimeConditions] = useState({}); // 新增：每个规则的时间条件
   const [modalConditionType, setModalConditionType] = useState(''); // 新增：模态框的条件类型
   const [modalTimeCondition, setModalTimeCondition] = useState({ start: '08:00', end: '18:00' }); // 新增：模态框的时间条件
-  const [weekCondition, setWeekCondition] = useState([1, 2, 3, 4, 5]); // 新增：星期条件状态
+  const [weekCondition, setWeekCondition] = useState({ days: [1, 2, 3, 4, 5], enabled: false }); // 修改初始状态
   const [ruleWeekConditions, setRuleWeekConditions] = useState({}); // 新增：每个规则的星期条件
   const [modalWeekCondition, setModalWeekCondition] = useState([1, 2, 3, 4, 5]); // 新增：模态框的星期条件
-  const [dateCondition, setDateCondition] = useState({ start: '2024-01-01', end: '2024-12-31' }); // 新增：日期条件状态
-  const [temperatureCondition, setTemperatureCondition] = useState({ operator: 'gt', value: 25 }); // 新增：温度条件状态
-  const [humidityCondition, setHumidityCondition] = useState({ operator: 'gt', value: 60 }); // 新增：湿度条件状态
-  const [lightCondition, setLightCondition] = useState({ operator: 'lt', value: 300 }); // 新增：光照条件状态
+  const [dateCondition, setDateCondition] = useState({ start: '2024-01-01', end: '2024-12-31', enabled: false }); // 新增：日期条件状态
+  const [temperatureCondition, setTemperatureCondition] = useState({ operator: 'gt', value: 25, enabled: false }); // 新增：温度条件状态
+  const [humidityCondition, setHumidityCondition] = useState({ operator: 'gt', value: 60, enabled: false }); // 新增：湿度条件状态
+  const [lightCondition, setLightCondition] = useState({ operator: 'lt', value: 300, enabled: false }); // 新增：光照条件状态
   const [ruleDateConditions, setRuleDateConditions] = useState({}); // 新增：每个规则的日期条件
   const [modalDateCondition, setModalDateCondition] = useState({ start: '2024-01-01', end: '2024-12-31' }); // 新增：模态框的日期条件
   const [ruleTemperatureConditions, setRuleTemperatureConditions] = useState({}); // 新增：每个规则的温度条件
@@ -420,6 +844,13 @@ const SceneConfigUI = () => {
   const [modalTemperatureCondition, setModalTemperatureCondition] = useState({ operator: 'gt', value: 25 }); // 新增：模态框的温度条件
   const [modalHumidityCondition, setModalHumidityCondition] = useState({ operator: 'gt', value: 60 }); // 新增：模态框的湿度条件
   const [modalLightCondition, setModalLightCondition] = useState({ operator: 'lt', value: 300 }); // 新增：模态框的光照条件
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [showWeekModal, setShowWeekModal] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [showTemperatureModal, setShowTemperatureModal] = useState(false);
+  const [showHumidityModal, setShowHumidityModal] = useState(false);
+  const [showLightModal, setShowLightModal] = useState(false);
+  const [rules, setRules] = useState([]);
 
   useEffect(() => {
     fetchScenes();
@@ -632,8 +1063,11 @@ const SceneConfigUI = () => {
     console.log('创建新场景的payload:', payload);
     try {
       const response = await addScene(payload);
-      showSuccessTip("创建新场景成功");
-      console.log('创建新场景成功:', response);
+      if (response.data.code === 200) {
+        showSuccessTip("创建新场景成功");
+      } else {
+        showErrorTip("创建新场景失败：回收站存在同名场景,请先删除");
+      }
     } catch (error) {
       showErrorTip("创建新场景失败");
       console.error('创建新场景失败:', error);
@@ -656,7 +1090,6 @@ const SceneConfigUI = () => {
     // 获取场景规则
     try {
       const response = await getAllRules(scene.scene_id);
-      // 确保response.data.data是数组
       const rulesData = Array.isArray(response.data.data) ? response.data.data : [];
       setSceneRules(prev => ({
         ...prev,
@@ -748,6 +1181,7 @@ const SceneConfigUI = () => {
   const handleEditRule = async (scene) => {
     setEditingRuleScene(scene);
     setShowRuleModal(true);
+    setNewRule(null); // 重置新规则状态
     // 获取规则（如果未获取过）
     if (!sceneRules[scene.scene_id]) {
       try {
@@ -1196,6 +1630,35 @@ const SceneConfigUI = () => {
     }
   };
 
+  // 辅助函数：获取操作符的中文描述
+  const getOperatorText = (operator) => {
+    const operatorMap = {
+      'gt': '大于',
+      'lt': '小于',
+      'gte': '大于等于',
+      'lte': '小于等于',
+      'eq': '等于',
+      'ne': '不等于',
+      'range': '范围'
+    };
+    return operatorMap[operator] || operator;
+  };
+
+  // 辅助函数：获取星期的中文描述
+  const getWeekdayText = (weekday) => {
+    const weekdayMap = {
+      1: '周一',
+      2: '周二',
+      3: '周三',
+      4: '周四',
+      5: '周五',
+      6: '周六',
+      7: '周日'
+    };
+    return weekdayMap[weekday] || weekday;
+  };
+
+  // 渲染规则
   const renderRules = (sceneId) => {
     const rules = sceneRules[sceneId];
     // 确保rules是数组
@@ -1209,34 +1672,6 @@ const SceneConfigUI = () => {
         </DeviceInfo>
       );
     }
-
-    // 辅助函数：获取操作符的中文描述
-    const getOperatorText = (operator) => {
-      const operatorMap = {
-        'gt': '大于',
-        'lt': '小于',
-        'gte': '大于等于',
-        'lte': '小于等于',
-        'eq': '等于',
-        'ne': '不等于',
-        'range': '范围'
-      };
-      return operatorMap[operator] || operator;
-    };
-
-    // 辅助函数：获取星期的中文描述
-    const getWeekdayText = (weekday) => {
-      const weekdayMap = {
-        1: '周一',
-        2: '周二',
-        3: '周三',
-        4: '周四',
-        5: '周五',
-        6: '周六',
-        7: '周日'
-      };
-      return weekdayMap[weekday] || weekday;
-    };
 
     return (
       <DeviceInfo>
@@ -1350,6 +1785,190 @@ const SceneConfigUI = () => {
         })}
       </DeviceInfo>
     );
+  };
+
+  const handleUpdateRules = async () => {
+    const existingRules = sceneRules[editingRuleScene.scene_id] || [];
+    let updateError = false;
+    for (const rule of existingRules) {
+      const editState = ruleEditStates[rule.rule_id];
+      if (!editState) continue;
+      // 优先级
+      if (editState.priority !== rule.priority) {
+        try {
+          await ruleUpdateField(rule.scene_id, rule.rule_id, 'priority', editState.priority);
+        } catch (e) {
+          showErrorTip(`规则${rule.rule_id}优先级保存失败`);
+          updateError = true;
+        }
+      }
+      // 启用
+      if (editState.enabled !== rule.enabled) {
+        try {
+          await ruleUpdateField(rule.scene_id, rule.rule_id, 'enabled', editState.enabled);
+        } catch (e) {
+          showErrorTip(`规则${rule.rule_id}启用状态保存失败`);
+          updateError = true;
+        }
+      }
+      // condition
+      try {
+        let condObj = editState.condition;
+        if (typeof condObj === 'string') {
+          condObj = JSON.parse(condObj);
+        }
+        if (JSON.stringify(condObj) !== JSON.stringify(rule.condition)) {
+          await ruleUpdateField(rule.scene_id, rule.rule_id, 'condition', condObj);
+        }
+      } catch (e) {
+        showErrorTip(`规则${rule.rule_id}条件保存失败，格式需为合法JSON`);
+        updateError = true;
+      }
+    }
+    if (!updateError) {
+      // 重新获取规则列表
+      try {
+        const response = await getAllRules(editingRuleScene.scene_id);
+        const rulesData = Array.isArray(response.data.data) ? response.data.data : [];
+        setSceneRules(prev => ({
+          ...prev,
+          [editingRuleScene.scene_id]: rulesData
+        }));
+      } catch (error) {
+        console.error('获取场景规则失败:', error);
+      }
+      // 重置所有状态
+      setShowRuleModal(false);
+      setEditingRuleScene(null);
+      setNewRule(null);
+      setRuleEditStates({});
+      setModalConditionType('');
+      setModalTimeCondition({ start: '08:00', end: '18:00' });
+      setModalWeekCondition([1, 2, 3, 4, 5]);
+      setModalDateCondition({ start: '2024-01-01', end: '2024-12-31' });
+      setModalTemperatureCondition({ operator: 'gt', value: 25 });
+      setModalHumidityCondition({ operator: 'gt', value: 60 });
+      setModalLightCondition({ operator: 'lt', value: 300 });
+    }
+  };
+
+  const handleSaveRules = async () => {
+    try {
+      // 如果有新规则，创建它
+      if (newRule) {
+        // 收集所有启用的条件
+        const conditions = {};
+        // console.log("timeCondition.enabled", timeCondition);
+        // console.log("weekCondition.enabled", weekCondition);
+        // console.log("dateCondition.enabled", dateCondition);
+        // console.log("temperatureCondition.enabled", temperatureCondition);
+        // console.log("humidityCondition.enabled", humidityCondition);
+        // console.log("lightCondition.enabled", lightCondition);
+
+        // 检查并添加时间条件
+        if (timeCondition.enabled) {
+          conditions.time = {
+            start: timeCondition.start,
+            end: timeCondition.end
+          };
+        }
+        
+        // 检查并添加星期条件
+        if (weekCondition.enabled) {
+          conditions.week = weekCondition.days;
+        }
+        
+        // 检查并添加日期条件
+        if (dateCondition.enabled) {
+          conditions.date = {
+            start: dateCondition.start,
+            end: dateCondition.end
+          };
+        }
+        
+        // 检查并添加温度条件
+        if (temperatureCondition.enabled) {
+          if (temperatureCondition.operator === 'range') {
+            conditions.temperature = {
+              operator: 'range',
+              min: temperatureCondition.min,
+              max: temperatureCondition.max
+            };
+          } else {
+            conditions.temperature = {
+              operator: temperatureCondition.operator,
+              value: temperatureCondition.value
+            };
+          }
+        }
+        
+        // 检查并添加湿度条件
+        if (humidityCondition.enabled) {
+          if (humidityCondition.operator === 'range') {
+            conditions.humidity = {
+              operator: 'range',
+              min: humidityCondition.min,
+              max: humidityCondition.max
+            };
+          } else {
+            conditions.humidity = {
+              operator: humidityCondition.operator,
+              value: humidityCondition.value
+            };
+          }
+        }
+        
+        // 检查并添加光照条件
+        if (lightCondition.enabled) {
+          if (lightCondition.operator === 'range') {
+            conditions.illumination = {
+              operator: 'range',
+              min: lightCondition.min,
+              max: lightCondition.max
+            };
+          } else {
+            conditions.illumination = {
+              operator: lightCondition.operator,
+              value: lightCondition.value
+            };
+          }
+        }
+
+        // 调用addRule接口创建新规则
+        await addRule(
+          editingRuleScene.scene_id,
+          conditions,
+          newRule.priority,
+          newRule.enabled
+        );
+      }
+
+      // 刷新规则列表
+      const updatedRules = await getAllRules(editingRuleScene.scene_id);
+      setRules(updatedRules);
+      
+      // 关闭模态框并重置状态
+      setShowRuleModal(false);
+      setEditingRuleScene(null);
+      setNewRule(null);
+      setTimeCondition({ start: '08:00', end: '18:00', enabled: false });
+      setWeekCondition({ days: [1, 2, 3, 4, 5], enabled: false });
+      setDateCondition({ start: '2024-01-01', end: '2024-12-31', enabled: false });
+      setTemperatureCondition({ operator: 'gt', value: 25, enabled: false });
+      setHumidityCondition({ operator: 'gt', value: 60, enabled: false });
+      setLightCondition({ operator: 'lt', value: 300, enabled: false });
+      setShowTimeModal(false);
+      setShowWeekModal(false);
+      setShowDateModal(false);
+      setShowTemperatureModal(false);
+      setShowHumidityModal(false);
+      setShowLightModal(false);
+      
+      showSuccessTip("保存规则成功");
+    } catch (error) {
+      console.error('保存规则失败:', error);
+      showErrorTip("保存规则失败");
+    }
   };
 
   return (
@@ -1518,10 +2137,10 @@ const SceneConfigUI = () => {
                            />
                          </InfoItem>
                          <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                           <InfoLabel style={{ marginBottom: '8px' }}>启用状态：</InfoLabel>
+                           <InfoLabel style={{ marginBottom: '8px' }}>当前状态：</InfoLabel>
                            <EnableButton
                              type="button"
-                             enabled={newRule.enabled === 1}
+                             enabled={newRule.enabled === 0}
                              onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
                              style={{ width: '100%', maxWidth: '100px', fontSize: '14px', padding: '8px 4px' }}
                            >
@@ -1529,375 +2148,44 @@ const SceneConfigUI = () => {
                            </EnableButton>
                          </InfoItem>
                        </div>
-                    <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                         <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                           <InfoLabel>条件（JSON格式）：</InfoLabel>
-                           <select
-                             value={selectedConditionType}
-                             onChange={e => {
-                               const conditionType = e.target.value;
-                               setSelectedConditionType(conditionType);
-                               
-                               if (conditionType) {
-                                 const templates = {
-                                   temperature: `{\n  "temperature": {\n    "operator": "${temperatureCondition.operator}",\n    "value": ${temperatureCondition.value}\n  }\n}`,
-                                   humidity: `{\n  "humidity": {\n    "operator": "${humidityCondition.operator}",\n    "value": ${humidityCondition.value}\n  }\n}`,
-                                   light: `{\n  "light": {\n    "operator": "${lightCondition.operator}",\n    "value": ${lightCondition.value}\n  }\n}`,
-                                   motion: '{\n  "motion": {\n    "operator": "eq",\n    "value": true\n  }\n}',
-                                   time: `{\n  "time": {\n    "start": "${timeCondition.start}",\n    "end": "${timeCondition.end}"\n  }\n}`,
-                                   week: `{\n  "week": [${weekCondition.join(', ')}]\n}`,
-                                   date: `{\n  "date": {\n    "start": "${dateCondition.start}",\n    "end": "${dateCondition.end}"\n  }\n}`
-                                 };
-                                 
-                                 setNewRule(prev => ({ ...prev, condition: templates[conditionType] }));
-                               }
-                             }}
-                             style={{
-                               padding: '6px 12px',
-                               borderRadius: '4px',
-                               border: '1px solid rgba(255, 255, 255, 0.3)',
-                               background: 'rgba(0, 0, 0, 0.2)',
-                               color: 'white',
-                               fontSize: '14px'
-                             }}
-                           >
-                             <option value="">选择条件模板...</option>
-                             <option value="temperature">温度条件</option>
-                             <option value="humidity">湿度条件</option>
-                             <option value="light">光照条件</option>
-                             <option value="motion">运动检测</option>
-                             <option value="time">时间条件</option>
-                             <option value="week">星期条件</option>
-                             <option value="date">日期条件</option>
-                           </select>
-                           
-                           {/* 时间条件专用输入框 */}
-                           {selectedConditionType === 'time' && (
-                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
-                               <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px' }}>从</span>
-                               <input
-                                 type="time"
-                                 value={timeCondition.start}
-                                 onChange={e => {
-                                   const newTimeCondition = { ...timeCondition, start: e.target.value };
-                                   setTimeCondition(newTimeCondition);
-                                   setNewRule(prev => ({ 
-                                     ...prev, 
-                                     condition: `{\n  "time": {\n    "start": "${newTimeCondition.start}",\n    "end": "${newTimeCondition.end}"\n  }\n}` 
-                                   }));
-                                 }}
-                                 style={{
-                                   padding: '4px 8px',
-                                   borderRadius: '4px',
-                                   border: '1px solid rgba(255, 255, 255, 0.3)',
-                                   background: 'rgba(0, 0, 0, 0.2)',
-                                   color: 'white',
-                                   fontSize: '14px'
-                                 }}
-                               />
-                               <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px' }}>到</span>
-                               <input
-                                 type="time"
-                                 value={timeCondition.end}
-                                 onChange={e => {
-                                   const newTimeCondition = { ...timeCondition, end: e.target.value };
-                                   setTimeCondition(newTimeCondition);
-                                   setNewRule(prev => ({ 
-                                     ...prev, 
-                                     condition: `{\n  "time": {\n    "start": "${newTimeCondition.start}",\n    "end": "${newTimeCondition.end}"\n  }\n}` 
-                                   }));
-                                 }}
-                                 style={{
-                                   padding: '4px 8px',
-                                   borderRadius: '4px',
-                                   border: '1px solid rgba(255, 255, 255, 0.3)',
-                                   background: 'rgba(0, 0, 0, 0.2)',
-                                   color: 'white',
-                                   fontSize: '14px'
-                                 }}
-                               />
-                             </div>
-                           )}
-                           
-                           {/* 温度条件专用选择框 */}
-                           {selectedConditionType === 'temperature' && (
-                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginLeft: '12px', marginTop: '8px' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>操作:</span>
-                                 <select
-                                   value={temperatureCondition.operator}
-                                   onChange={e => {
-                                     const newTemperatureCondition = { ...temperatureCondition, operator: e.target.value };
-                                     setTemperatureCondition(newTemperatureCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "temperature": {\n    "operator": "${newTemperatureCondition.operator}",\n    "value": ${newTemperatureCondition.value}\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '6px 8px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px'
-                                   }}
-                                 >
-                                   <option value="gt">大于</option>
-                                   <option value="lt">小于</option>
-                                   <option value="eq">等于</option>
-                                 </select>
-                               </div>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>值:</span>
-                                 <input
-                                   type="number"
-                                   value={temperatureCondition.value}
-                                   onChange={e => {
-                                     const newTemperatureCondition = { ...temperatureCondition, value: parseInt(e.target.value) };
-                                     setTemperatureCondition(newTemperatureCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "temperature": {\n    "operator": "${newTemperatureCondition.operator}",\n    "value": ${newTemperatureCondition.value}\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '6px 8px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px',
-                                     width: '80px'
-                                   }}
-                                 />
-                               </div>
-                             </div>
-                           )}
-                           
-                           {/* 湿度条件专用选择框 */}
-                           {selectedConditionType === 'humidity' && (
-                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginLeft: '12px', marginTop: '8px' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>操作:</span>
-                                 <select
-                                   value={humidityCondition.operator}
-                                   onChange={e => {
-                                     const newHumidityCondition = { ...humidityCondition, operator: e.target.value };
-                                     setHumidityCondition(newHumidityCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "humidity": {\n    "operator": "${newHumidityCondition.operator}",\n    "value": ${newHumidityCondition.value}\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '6px 8px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px'
-                                   }}
-                                 >
-                                   <option value="gt">大于</option>
-                                   <option value="lt">小于</option>
-                                   <option value="eq">等于</option>
-                                 </select>
-                               </div>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>值:</span>
-                                 <input
-                                   type="number"
-                                   value={humidityCondition.value}
-                                   onChange={e => {
-                                     const newHumidityCondition = { ...humidityCondition, value: parseInt(e.target.value) };
-                                     setHumidityCondition(newHumidityCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "humidity": {\n    "operator": "${newHumidityCondition.operator}",\n    "value": ${newHumidityCondition.value}\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '6px 8px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px',
-                                     width: '80px'
-                                   }}
-                                 />
-                               </div>
-                             </div>
-                           )}
-                           
-                           {/* 光照条件专用选择框 */}
-                           {selectedConditionType === 'light' && (
-                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginLeft: '12px', marginTop: '8px' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>操作:</span>
-                                 <select
-                                   value={lightCondition.operator}
-                                   onChange={e => {
-                                     const newLightCondition = { ...lightCondition, operator: e.target.value };
-                                     setLightCondition(newLightCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "light": {\n    "operator": "${newLightCondition.operator}",\n    "value": ${newLightCondition.value}\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '6px 8px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px'
-                                   }}
-                                 >
-                                   <option value="gt">大于</option>
-                                   <option value="lt">小于</option>
-                                   <option value="eq">等于</option>
-                                 </select>
-                               </div>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>值:</span>
-                                 <input
-                                   type="number"
-                                   value={lightCondition.value}
-                                   onChange={e => {
-                                     const newLightCondition = { ...lightCondition, value: parseInt(e.target.value) };
-                                     setLightCondition(newLightCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "light": {\n    "operator": "${newLightCondition.operator}",\n    "value": ${newLightCondition.value}\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '6px 8px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px',
-                                     width: '80px'
-                                   }}
-                                 />
-                               </div>
-                             </div>
-                           )}
-                           
-                           {/* 星期条件专用选择框 */}
-                           {selectedConditionType === 'week' && (
-                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginLeft: '12px', marginTop: '8px' }}>
-                               {[
-                                 { value: 1, label: '周一' },
-                                 { value: 2, label: '周二' },
-                                 { value: 3, label: '周三' },
-                                 { value: 4, label: '周四' },
-                                 { value: 5, label: '周五' },
-                                 { value: 6, label: '周六' },
-                                 { value: 0, label: '周日' }
-                               ].map(day => (
-                                 <label key={day.value} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', cursor: 'pointer' }}>
-                                   <input
-                                     type="checkbox"
-                                     checked={weekCondition.includes(day.value)}
-                                     onChange={e => {
-                                       let newWeekCondition;
-                                       if (e.target.checked) {
-                                         newWeekCondition = [...weekCondition, day.value].sort((a, b) => a - b);
-                                       } else {
-                                         newWeekCondition = weekCondition.filter(d => d !== day.value);
-                                       }
-                                       setWeekCondition(newWeekCondition);
-                                       setNewRule(prev => ({ 
-                                         ...prev, 
-                                         condition: `{\n  "week": [${newWeekCondition.join(', ')}]\n}` 
-                                       }));
-                                     }}
-                                     style={{ marginRight: '4px' }}
-                                   />
-                                   {day.label}
-                                 </label>
-                               ))}
-                             </div>
-                           )}
-                           
-                           {/* 日期条件专用选择框 */}
-                           {selectedConditionType === 'date' && (
-                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginLeft: '12px', marginTop: '8px' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>从</span>
-                                 <input
-                                   type="date"
-                                   value={dateCondition.start}
-                                   onChange={e => {
-                                     const newDateCondition = { ...dateCondition, start: e.target.value };
-                                     setDateCondition(newDateCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "date": {\n    "start": "${newDateCondition.start}",\n    "end": "${newDateCondition.end}"\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '8px 12px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px'
-                                   }}
-                                 />
-                               </div>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 <span style={{ color: 'white', fontSize: '14px' }}>到</span>
-                                 <input
-                                   type="date"
-                                   value={dateCondition.end}
-                                   onChange={e => {
-                                     const newDateCondition = { ...dateCondition, end: e.target.value };
-                                     setDateCondition(newDateCondition);
-                                     setNewRule(prev => ({ 
-                                       ...prev, 
-                                       condition: `{\n  "date": {\n    "start": "${newDateCondition.start}",\n    "end": "${newDateCondition.end}"\n  }\n}` 
-                                     }));
-                                   }}
-                                   style={{
-                                     padding: '8px 12px',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                                     borderRadius: '4px',
-                                     background: 'rgba(0, 0, 0, 0.2)',
-                                     color: 'white',
-                                     fontSize: '14px'
-                                   }}
-                                 />
-                               </div>
-                             </div>
-                           )}
-                         </div>
-                         <textarea
-                           value={newRule.condition}
-                           onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
-                           rows={8}
-                           style={{ 
-                             width: '100%', 
-                             maxWidth: '100%',
-                             boxSizing: 'border-box',
-                             fontFamily: 'Consolas, Monaco, monospace', 
-                             fontSize: '14px',
-                             padding: '12px',
-                             border: '1px solid rgba(255, 255, 255, 0.3)',
-                             borderRadius: '6px',
-                             background: 'rgba(0, 0, 0, 0.2)',
-                             color: 'white',
-                             resize: 'vertical',
-                             minHeight: '120px',
-                             overflow: 'auto'
-                           }}
-                           placeholder="请输入JSON格式的条件..."
-                         />
-                       </InfoItem>
+                    <ConditionTemplateSelector
+                      value={selectedConditionType}
+                      onChange={setSelectedConditionType}
+                      timeCondition={timeCondition}
+                      setTimeCondition={setTimeCondition}
+                      weekCondition={weekCondition}
+                      setWeekCondition={setWeekCondition}
+                      dateCondition={dateCondition}
+                      setDateCondition={setDateCondition}
+                      temperatureCondition={temperatureCondition}
+                      setTemperatureCondition={setTemperatureCondition}
+                      humidityCondition={humidityCondition}
+                      setHumidityCondition={setHumidityCondition}
+                      lightCondition={lightCondition}
+                      setLightCondition={setLightCondition}
+                      onConditionChange={condition => setNewRule(prev => ({ ...prev, condition }))}
+                    />
+                    <textarea
+                      value={newRule.condition}
+                      onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
+                      rows={8}
+                      style={{ 
+                        width: '100%', 
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        fontFamily: 'Consolas, Monaco, monospace', 
+                        fontSize: '14px',
+                        padding: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '6px',
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        color: 'white',
+                        resize: 'vertical',
+                        minHeight: '120px',
+                        overflow: 'auto'
+                      }}
+                      placeholder="请输入JSON格式的条件..."
+                    />
                   </DeviceInfo>
                 ) : (
                   <Button onClick={() => {
@@ -1959,10 +2247,10 @@ const SceneConfigUI = () => {
                             />
                           </InfoItem>
                           <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <InfoLabel style={{ marginBottom: '8px' }}>启用状态：</InfoLabel>
+                            <InfoLabel style={{ marginBottom: '8px' }}>当前状态：</InfoLabel>
                             <EnableButton
                               type="button"
-                              enabled={editState.enabled === 1}
+                              enabled={editState.enabled === 0}
                               onClick={() => setRuleEditStates(prev => ({
                                 ...prev,
                                 [rule.rule_id]: { ...prev[rule.rule_id], enabled: editState.enabled === 1 ? 0 : 1 }
@@ -1973,745 +2261,203 @@ const SceneConfigUI = () => {
                             </EnableButton>
                           </InfoItem>
                         </div>
-                        <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                          <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <InfoLabel>条件（JSON格式）：</InfoLabel>
-                            <select
-                              onChange={e => {
-                                if (e.target.value) {
-                                  // 更新条件类型
-                                  setRuleConditionTypes(prev => ({
-                                    ...prev,
-                                    [rule.rule_id]: e.target.value
-                                  }));
-                                  
-                                  const templates = {
-                                    temperature: `{\n  "temperature": {\n    "operator": "${(ruleTemperatureConditions[rule.rule_id] || { operator: 'gt', value: 25 }).operator}",\n    "value": ${(ruleTemperatureConditions[rule.rule_id] || { operator: 'gt', value: 25 }).value}\n  }\n}`,
-                                    humidity: `{\n  "humidity": {\n    "operator": "${(ruleHumidityConditions[rule.rule_id] || { operator: 'gt', value: 60 }).operator}",\n    "value": ${(ruleHumidityConditions[rule.rule_id] || { operator: 'gt', value: 60 }).value}\n  }\n}`,
-                                    light: `{\n  "light": {\n    "operator": "${(ruleLightConditions[rule.rule_id] || { operator: 'lt', value: 300 }).operator}",\n    "value": ${(ruleLightConditions[rule.rule_id] || { operator: 'lt', value: 300 }).value}\n  }\n}`,
-                                    motion: '{\n  "motion": {\n    "operator": "eq",\n    "value": true\n  }\n}',
-                                    week: '{\n  "week": [1, 2, 3, 4, 5]\n}',
-                                    date: '{\n  "date": {\n    "start": "2024-01-01",\n    "end": "2024-12-31"\n  }\n}'
-                                  };
-                                  
-                                  if (e.target.value === 'time') {
-                                    // 初始化时间条件
-                                    const currentTimeCondition = ruleTimeConditions[rule.rule_id] || { start: '08:00', end: '18:00' };
-                                    setRuleTimeConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: currentTimeCondition
-                                    }));
-                                    setRuleEditStates(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: { 
-                                        ...prev[rule.rule_id], 
-                                        condition: `{\n  "time": {\n    "start": "${currentTimeCondition.start}",\n    "end": "${currentTimeCondition.end}"\n  }\n}` 
-                                      }
-                                    }));
-                                  } else if (e.target.value === 'week') {
-                                    // 初始化星期条件
-                                    const currentWeekCondition = ruleWeekConditions[rule.rule_id] || [1, 2, 3, 4, 5];
-                                    setRuleWeekConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: currentWeekCondition
-                                    }));
-                                    setRuleEditStates(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: { 
-                                        ...prev[rule.rule_id], 
-                                        condition: `{\n  "week": [${currentWeekCondition.join(', ')}]\n}` 
-                                      }
-                                    }));
-                                  } else if (e.target.value === 'date') {
-                                    // 初始化日期条件
-                                    const currentDateCondition = ruleDateConditions[rule.rule_id] || { start: '2024-01-01', end: '2024-12-31' };
-                                    setRuleDateConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: currentDateCondition
-                                    }));
-                                    setRuleEditStates(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: { 
-                                        ...prev[rule.rule_id], 
-                                        condition: `{\n  "date": {\n    "start": "${currentDateCondition.start}",\n    "end": "${currentDateCondition.end}"\n  }\n}` 
-                                      }
-                                    }));
-                                  } else if (e.target.value === 'temperature') {
-                                    // 初始化温度条件
-                                    const currentTemperatureCondition = ruleTemperatureConditions[rule.rule_id] || { operator: 'gt', value: 25 };
-                                    setRuleTemperatureConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: currentTemperatureCondition
-                                    }));
-                                    setRuleEditStates(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: { 
-                                        ...prev[rule.rule_id], 
-                                        condition: `{\n  "temperature": {\n    "operator": "${currentTemperatureCondition.operator}",\n    "value": ${currentTemperatureCondition.value}\n  }\n}` 
-                                      }
-                                    }));
-                                  } else if (e.target.value === 'humidity') {
-                                    // 初始化湿度条件
-                                    const currentHumidityCondition = ruleHumidityConditions[rule.rule_id] || { operator: 'gt', value: 60 };
-                                    setRuleHumidityConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: currentHumidityCondition
-                                    }));
-                                    setRuleEditStates(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: { 
-                                        ...prev[rule.rule_id], 
-                                        condition: `{\n  "humidity": {\n    "operator": "${currentHumidityCondition.operator}",\n    "value": ${currentHumidityCondition.value}\n  }\n}` 
-                                      }
-                                    }));
-                                  } else if (e.target.value === 'light') {
-                                    // 初始化光照条件
-                                    const currentLightCondition = ruleLightConditions[rule.rule_id] || { operator: 'lt', value: 300 };
-                                    setRuleLightConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: currentLightCondition
-                                    }));
-                                    setRuleEditStates(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: { 
-                                        ...prev[rule.rule_id], 
-                                        condition: `{\n  "light": {\n    "operator": "${currentLightCondition.operator}",\n    "value": ${currentLightCondition.value}\n  }\n}` 
-                                      }
-                                    }));
-                                  } else {
-                                    setRuleEditStates(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: { ...prev[rule.rule_id], condition: templates[e.target.value] }
-                                    }));
-                                  }
-                                }
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: '4px',
-                                border: '1px solid rgba(255, 255, 255, 0.3)',
-                                background: 'rgba(0, 0, 0, 0.2)',
-                                color: 'white',
-                                fontSize: '14px'
-                              }}
-                            >
-                              <option value="">选择条件模板...</option>
-                              <option value="temperature">温度条件</option>
-                              <option value="humidity">湿度条件</option>
-                              <option value="light">光照条件</option>
-                              <option value="motion">运动检测</option>
-                              <option value="time">时间条件</option>
-                              <option value="week">星期条件</option>
-                              <option value="date">日期条件</option>
-                            </select>
+                        
+                        {/* 温度条件 */}
+                        {rule.condition.temperature && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <InfoLabel>温度条件：</InfoLabel>
+                            {rule.condition.temperature.operator === 'range' ? (
+                              <InfoValue>
+                                {rule.condition.temperature.min}°C ~ {rule.condition.temperature.max}°C
+                              </InfoValue>
+                            ) : (
+                              <InfoValue>
+                                {getOperatorText(rule.condition.temperature.operator)} {rule.condition.temperature.value}°C
+                              </InfoValue>
+                            )}
                           </div>
-                          {ruleConditionTypes[rule.rule_id] === 'time' && (
-                            <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: 'white', fontSize: '14px' }}>从</span>
-                                <input
-                                  type="time"
-                                  value={ruleTimeConditions[rule.rule_id]?.start || '08:00'}
-                                  onChange={e => {
-                                    const newRuleTimeCondition = { 
-                                      ...ruleTimeConditions[rule.rule_id], 
-                                      start: e.target.value 
-                                    };
-                                    setRuleTimeConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: newRuleTimeCondition
-                                    }));
-                                    setRuleEditStates(prev => ({ 
-                                      ...prev, 
-                                      [rule.rule_id]: {
-                                        ...prev[rule.rule_id],
-                                        condition: `{\n  "time": {\n    "start": "${newRuleTimeCondition.start}",\n    "end": "${newRuleTimeCondition.end}"\n  }\n}`
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '8px 12px',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    borderRadius: '4px',
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    color: 'white',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: 'white', fontSize: '14px' }}>到</span>
-                                <input
-                                  type="time"
-                                  value={ruleTimeConditions[rule.rule_id]?.end || '18:00'}
-                                  onChange={e => {
-                                    const newRuleTimeCondition = { 
-                                      ...ruleTimeConditions[rule.rule_id], 
-                                      end: e.target.value 
-                                    };
-                                    setRuleTimeConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: newRuleTimeCondition
-                                    }));
-                                    setRuleEditStates(prev => ({ 
-                                      ...prev, 
-                                      [rule.rule_id]: {
-                                        ...prev[rule.rule_id],
-                                        condition: `{\n  "time": {\n    "start": "${newRuleTimeCondition.start}",\n    "end": "${newRuleTimeCondition.end}"\n  }\n}`
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '8px 12px',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    borderRadius: '4px',
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    color: 'white',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* 星期条件专用选择框 */}
-                          {ruleConditionTypes[rule.rule_id] === 'week' && (
-                            <div style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                              {[
-                                { value: 1, label: '周一' },
-                                { value: 2, label: '周二' },
-                                { value: 3, label: '周三' },
-                                { value: 4, label: '周四' },
-                                { value: 5, label: '周五' },
-                                { value: 6, label: '周六' },
-                                { value: 0, label: '周日' }
-                              ].map(day => (
-                                <label key={day.value} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', cursor: 'pointer' }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={(ruleWeekConditions[rule.rule_id] || []).includes(day.value)}
-                                    onChange={e => {
-                                      const currentWeekCondition = ruleWeekConditions[rule.rule_id] || [1, 2, 3, 4, 5];
-                                      let newWeekCondition;
-                                      if (e.target.checked) {
-                                        newWeekCondition = [...currentWeekCondition, day.value].sort((a, b) => a - b);
-                                      } else {
-                                        newWeekCondition = currentWeekCondition.filter(d => d !== day.value);
-                                      }
-                                      setRuleWeekConditions(prev => ({
-                                        ...prev,
-                                        [rule.rule_id]: newWeekCondition
-                                      }));
-                                      setRuleEditStates(prev => ({ 
-                                        ...prev, 
-                                        [rule.rule_id]: {
-                                          ...prev[rule.rule_id],
-                                          condition: `{\n  "week": [${newWeekCondition.join(', ')}]\n}`
-                                        }
-                                      }));
-                                    }}
-                                    style={{ marginRight: '4px' }}
-                                  />
-                                  {day.label}
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* 日期条件专用选择框 */}
-                          {ruleConditionTypes[rule.rule_id] === 'date' && (
-                            <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: 'white', fontSize: '14px' }}>从</span>
-                                <input
-                                  type="date"
-                                  value={ruleDateConditions[rule.rule_id]?.start || '2024-01-01'}
-                                  onChange={e => {
-                                    const newRuleDateCondition = { 
-                                      ...ruleDateConditions[rule.rule_id], 
-                                      start: e.target.value 
-                                    };
-                                    setRuleDateConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: newRuleDateCondition
-                                    }));
-                                    setRuleEditStates(prev => ({ 
-                                      ...prev, 
-                                      [rule.rule_id]: {
-                                        ...prev[rule.rule_id],
-                                        condition: `{\n  "date": {\n    "start": "${newRuleDateCondition.start}",\n    "end": "${newRuleDateCondition.end}"\n  }\n}`
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '8px 12px',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    borderRadius: '4px',
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    color: 'white',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: 'white', fontSize: '14px' }}>到</span>
-                                <input
-                                  type="date"
-                                  value={ruleDateConditions[rule.rule_id]?.end || '2024-12-31'}
-                                  onChange={e => {
-                                    const newRuleDateCondition = { 
-                                      ...ruleDateConditions[rule.rule_id], 
-                                      end: e.target.value 
-                                    };
-                                    setRuleDateConditions(prev => ({
-                                      ...prev,
-                                      [rule.rule_id]: newRuleDateCondition
-                                    }));
-                                    setRuleEditStates(prev => ({ 
-                                      ...prev, 
-                                      [rule.rule_id]: {
-                                        ...prev[rule.rule_id],
-                                        condition: `{\n  "date": {\n    "start": "${newRuleDateCondition.start}",\n    "end": "${newRuleDateCondition.end}"\n  }\n}`
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '8px 12px',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    borderRadius: '4px',
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    color: 'white',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <textarea
-                            value={editState.condition}
-                            onChange={e => setRuleEditStates(prev => ({
-                              ...prev,
-                              [rule.rule_id]: { ...prev[rule.rule_id], condition: e.target.value }
-                            }))}
-                            rows={8}
-                            style={{ 
-                              width: '100%', 
-                              maxWidth: '100%',
-                              boxSizing: 'border-box',
-                              fontFamily: 'Consolas, Monaco, monospace', 
-                              fontSize: '14px',
-                              padding: '12px',
-                              border: '1px solid rgba(255, 255, 255, 0.3)',
-                              borderRadius: '6px',
-                              background: 'rgba(0, 0, 0, 0.2)',
-                              color: 'white',
-                              resize: 'vertical',
-                              minHeight: '120px',
-                              overflow: 'auto'
-                            }}
-                            placeholder="请输入JSON格式的条件..."
-                          />
-                        </InfoItem>
+                        )}
+
+                        {/* 光照条件 */}
+                        {rule.condition.illumination && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <InfoLabel>光照条件：</InfoLabel>
+                            {rule.condition.illumination.operator === 'range' ? (
+                              <InfoValue>
+                                {rule.condition.illumination.min} lux ~ {rule.condition.illumination.max} lux
+                              </InfoValue>
+                            ) : (
+                              <InfoValue>
+                                {getOperatorText(rule.condition.illumination.operator)} {rule.condition.illumination.value} lux
+                              </InfoValue>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 湿度条件 */}
+                        {rule.condition.humidity && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <InfoLabel>湿度条件：</InfoLabel>
+                            {rule.condition.humidity.operator === 'range' ? (
+                              <InfoValue>
+                                {rule.condition.humidity.min}% ~ {rule.condition.humidity.max}%
+                              </InfoValue>
+                            ) : (
+                              <InfoValue>
+                                {getOperatorText(rule.condition.humidity.operator)} {rule.condition.humidity.value}%
+                              </InfoValue>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 时间条件 */}
+                        {rule.condition.time && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <InfoLabel>时间条件：</InfoLabel>
+                            <InfoValue>
+                              {rule.condition.time.start} ~ {rule.condition.time.end}
+                            </InfoValue>
+                          </div>
+                        )}
+
+                        {/* 星期条件 */}
+                        {rule.condition.week && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <InfoLabel>星期条件：</InfoLabel>
+                            <InfoValue>
+                              {rule.condition.week.map(getWeekdayText).join('、')}
+                            </InfoValue>
+                          </div>
+                        )}
+
+                        {/* 日期条件 */}
+                        {rule.condition.date && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <InfoLabel>日期条件：</InfoLabel>
+                            <InfoValue>
+                              {rule.condition.date.start} 至 {rule.condition.date.end}
+                            </InfoValue>
+                          </div>
+                        )}
                       </DeviceInfo>
                     );
                   })}
                   {newRule ? (
-                    <DeviceInfo>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                        <DeviceTitle style={{ margin: 0 }}>新建规则</DeviceTitle>
-                        <div style={{ 
-                          background: 'rgba(34, 197, 94, 0.2)', 
-                          padding: '4px 8px', 
-                          borderRadius: '4px', 
-                          fontSize: '12px',
-                          color: '#22c55e'
-                        }}>
-                          新规则
-                        </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
-                        <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                          <InfoLabel style={{ marginBottom: '8px' }}>优先级：</InfoLabel>
-                          <Input
-                            type="number"
-                            value={newRule.priority}
-                            min={0}
-                            max={100}
-                            onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
-                            style={{ width: '100%', padding: '8px 12px', maxWidth: '120px' }}
-                          />
-                        </InfoItem>
-                        <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                          <InfoLabel style={{ marginBottom: '8px' }}>启用状态：</InfoLabel>
-                          <EnableButton
-                            type="button"
-                            enabled={newRule.enabled === 1}
-                            onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
-                            style={{ width: '100%', maxWidth: '100px', fontSize: '14px', padding: '8px 4px' }}
-                          >
-                            {newRule.enabled === 1 ? '启用' : '禁用'}
-                          </EnableButton>
-                        </InfoItem>
-                      </div>
-                      <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <InfoLabel>条件（JSON格式）：</InfoLabel>
-                          <select
-                            onChange={e => {
-                              if (e.target.value) {
-                                // 更新条件类型
-                                setModalConditionType(e.target.value);
-                                
-                                const templates = {
-                                  temperature: '{\n  "temperature": {\n    "operator": "gt",\n    "value": 25\n  }\n}',
-                                  humidity: '{\n  "humidity": {\n    "max": 60,\n    "min": 40,\n    "operator": "range"\n  }\n}',
-                                  light: '{\n  "light": {\n    "operator": "lt",\n    "value": 300\n  }\n}',
-                                  motion: '{\n  "motion": {\n    "operator": "eq",\n    "value": true\n  }\n}',
-                                  week: '{\n  "week": [1, 2, 3, 4, 5]\n}',
-                                  date: '{\n  "date": {\n    "start": "2024-01-01",\n    "end": "2024-12-31"\n  }\n}'
-                                };
-                                
-                                if (e.target.value === 'time') {
-                                  // 使用当前时间条件生成模板
-                                  setNewRule(prev => ({ 
-                                    ...prev, 
-                                    condition: `{\n  "time": {\n    "start": "${modalTimeCondition.start}",\n    "end": "${modalTimeCondition.end}"\n  }\n}` 
-                                  }));
-                                } else if (e.target.value === 'week') {
-                                   // 使用当前星期条件生成模板
-                                   setNewRule(prev => ({ 
-                                     ...prev, 
-                                     condition: `{\n  "week": [${modalWeekCondition.join(', ')}]\n}` 
-                                   }));
-                                 } else if (e.target.value === 'date') {
-                                   // 使用当前日期条件生成模板
-                                   setNewRule(prev => ({ 
-                                     ...prev, 
-                                     condition: `{\n  "date": {\n    "start": "${modalDateCondition.start}",\n    "end": "${modalDateCondition.end}"\n  }\n}` 
-                                   }));
-                                 } else {
-                                   setNewRule(prev => ({ ...prev, condition: templates[e.target.value] }));
-                                 }
-                              }
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: '4px',
-                              border: '1px solid rgba(255, 255, 255, 0.3)',
-                              background: 'rgba(0, 0, 0, 0.2)',
-                              color: 'white',
-                              fontSize: '14px'
-                            }}
-                          >
-                            <option value="">选择条件模板...</option>
-                            <option value="temperature">温度条件</option>
-                            <option value="humidity">湿度条件</option>
-                            <option value="light">光照条件</option>
-                            <option value="motion">运动检测</option>
-                            <option value="time">时间条件</option>
-                            <option value="week">星期条件</option>
-                            <option value="date">日期条件</option>
-                          </select>
-                        </div>
-                        {modalConditionType === 'time' && (
-                          <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ color: 'white', fontSize: '14px' }}>从</span>
-                              <input
-                                type="time"
-                                value={modalTimeCondition.start}
-                                onChange={e => {
-                                  const newModalTimeCondition = { ...modalTimeCondition, start: e.target.value };
-                                  setModalTimeCondition(newModalTimeCondition);
-                                  setNewRule(prev => ({ 
-                                    ...prev, 
-                                    condition: `{\n  "time": {\n    "start": "${newModalTimeCondition.start}",\n    "end": "${newModalTimeCondition.end}"\n  }\n}` 
-                                  }));
-                                }}
-                                style={{
-                                  padding: '8px 12px',
-                                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                                  borderRadius: '4px',
-                                  background: 'rgba(0, 0, 0, 0.2)',
-                                  color: 'white',
-                                  fontSize: '14px'
-                                }}
-                              />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ color: 'white', fontSize: '14px' }}>到</span>
-                              <input
-                                type="time"
-                                value={modalTimeCondition.end}
-                                onChange={e => {
-                                  const newModalTimeCondition = { ...modalTimeCondition, end: e.target.value };
-                                  setModalTimeCondition(newModalTimeCondition);
-                                  setNewRule(prev => ({ 
-                                    ...prev, 
-                                    condition: `{\n  "time": {\n    "start": "${newModalTimeCondition.start}",\n    "end": "${newModalTimeCondition.end}"\n  }\n}` 
-                                  }));
-                                }}
-                                style={{
-                                  padding: '8px 12px',
-                                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                                  borderRadius: '4px',
-                                  background: 'rgba(0, 0, 0, 0.2)',
-                                  color: 'white',
-                                  fontSize: '14px'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* 星期条件专用选择框 */}
-                        {modalConditionType === 'week' && (
-                          <div style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {[
-                              { value: 1, label: '周一' },
-                              { value: 2, label: '周二' },
-                              { value: 3, label: '周三' },
-                              { value: 4, label: '周四' },
-                              { value: 5, label: '周五' },
-                              { value: 6, label: '周六' },
-                              { value: 0, label: '周日' }
-                            ].map(day => (
-                              <label key={day.value} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '14px', cursor: 'pointer' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={modalWeekCondition.includes(day.value)}
-                                  onChange={e => {
-                                    let newModalWeekCondition;
-                                    if (e.target.checked) {
-                                      newModalWeekCondition = [...modalWeekCondition, day.value].sort((a, b) => a - b);
-                                    } else {
-                                      newModalWeekCondition = modalWeekCondition.filter(d => d !== day.value);
-                                    }
-                                    setModalWeekCondition(newModalWeekCondition);
-                                    setNewRule(prev => ({ 
-                                      ...prev, 
-                                      condition: `{\n  "week": [${newModalWeekCondition.join(', ')}]\n}` 
-                                    }));
-                                  }}
-                                  style={{ marginRight: '4px' }}
-                                />
-                                {day.label}
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* 日期条件专用选择框 */}
-                        {modalConditionType === 'date' && (
-                          <div style={{ marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: 'white', fontSize: '14px' }}>从:</span>
-                                <input
-                                  type="date"
-                                  value={modalDateCondition.start}
-                                  onChange={e => {
-                                    const newModalDateCondition = { ...modalDateCondition, start: e.target.value };
-                                    setModalDateCondition(newModalDateCondition);
-                                    setNewRule(prev => ({ 
-                                      ...prev, 
-                                      condition: `{\n  "date": {\n    "start": "${newModalDateCondition.start}",\n    "end": "${newModalDateCondition.end}"\n  }\n}` 
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '6px 8px',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    borderRadius: '4px',
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    color: 'white',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: 'white', fontSize: '14px' }}>到:</span>
-                                <input
-                                  type="date"
-                                  value={modalDateCondition.end}
-                                  onChange={e => {
-                                    const newModalDateCondition = { ...modalDateCondition, end: e.target.value };
-                                    setModalDateCondition(newModalDateCondition);
-                                    setNewRule(prev => ({ 
-                                      ...prev, 
-                                      condition: `{\n  "date": {\n    "start": "${newModalDateCondition.start}",\n    "end": "${newModalDateCondition.end}"\n  }\n}` 
-                                    }));
-                                  }}
-                                  style={{
-                                    padding: '6px 8px',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    borderRadius: '4px',
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    color: 'white',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <textarea
-                          value={newRule.condition}
-                          onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
-                          rows={8}
-                          style={{ 
-                            width: '100%', 
-                            maxWidth: '100%',
-                            boxSizing: 'border-box',
-                            fontFamily: 'Consolas, Monaco, monospace', 
-                            fontSize: '14px',
-                            padding: '12px',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            borderRadius: '6px',
-                            background: 'rgba(0, 0, 0, 0.2)',
-                            color: 'white',
-                            resize: 'vertical',
-                            minHeight: '120px',
-                            overflow: 'auto'
-                          }}
-                          placeholder="请输入JSON格式的条件..."
-                        />
-                      </InfoItem>
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '12px', 
-                        marginTop: '20px',
-                        paddingTop: '15px',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
-                        <Button
-                          onClick={() => {
-                            // 这里可以添加验证逻辑
-                            showSuccessTip('规则已准备就绪，点击保存按钮完成创建');
-                          }}
-                          style={{ flex: 1 }}
-                        >
-                          验证规则
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setNewRule(null);
-                            setModalConditionType('');
-                            setModalTimeCondition({ start: '08:00', end: '18:00' });
-                            setModalWeekCondition([1, 2, 3, 4, 5]);
-                          }}
-                          style={{ 
-                            flex: 1,
-                            background: 'rgba(108, 117, 125, 0.3)',
-                            borderColor: 'rgba(108, 117, 125, 0.5)'
-                          }}
-                        >
-                          取消创建
-                        </Button>
-                      </div>
-                    </DeviceInfo>
-                  ) : (
-                    <Button onClick={() => setNewRule({ priority: 0, enabled: 1, condition: '{\n  \"temperature\": {\n    \"operator\": \"gt\", \n    \"value\": 25\n  }\n}' })} style={{ marginTop: 16 }}>+ 创建新规则</Button>
-                  )}
+                  <DeviceInfo>
+                    <DeviceTitle>新建规则</DeviceTitle>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                         <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                           <InfoLabel style={{ marginBottom: '8px' }}>优先级：</InfoLabel>
+                           <Input
+                             type="number"
+                             value={newRule.priority}
+                             min={0}
+                             max={100}
+                             onChange={e => setNewRule(prev => ({ ...prev, priority: Number(e.target.value) }))}
+                             style={{ width: '100%', padding: '8px 12px', maxWidth: '120px' }}
+                           />
+                         </InfoItem>
+                         <InfoItem style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                           <InfoLabel style={{ marginBottom: '8px' }}>当前状态：</InfoLabel>
+                           <EnableButton
+                             type="button"
+                             enabled={newRule.enabled === 0}
+                             onClick={() => setNewRule(prev => ({ ...prev, enabled: newRule.enabled === 1 ? 0 : 1 }))}
+                             style={{ width: '100%', maxWidth: '100px', fontSize: '14px', padding: '8px 4px' }}
+                           >
+                             {newRule.enabled === 1 ? '启用' : '禁用'}
+                           </EnableButton>
+                         </InfoItem>
+                       </div>
+                    <ConditionTemplateSelector
+                      value={selectedConditionType}
+                      onChange={setSelectedConditionType}
+                      timeCondition={timeCondition}
+                      setTimeCondition={setTimeCondition}
+                      weekCondition={weekCondition}
+                      setWeekCondition={setWeekCondition}
+                      dateCondition={dateCondition}
+                      setDateCondition={setDateCondition}
+                      temperatureCondition={temperatureCondition}
+                      setTemperatureCondition={setTemperatureCondition}
+                      humidityCondition={humidityCondition}
+                      setHumidityCondition={setHumidityCondition}
+                      lightCondition={lightCondition}
+                      setLightCondition={setLightCondition}
+                      onConditionChange={condition => setNewRule(prev => ({ ...prev, condition }))}
+                    />
+                    <textarea
+                      value={newRule.condition}
+                      onChange={e => setNewRule(prev => ({ ...prev, condition: e.target.value }))}
+                      rows={8}
+                      style={{ 
+                        width: '100%', 
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        fontFamily: 'Consolas, Monaco, monospace', 
+                        fontSize: '14px',
+                        padding: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '6px',
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        color: 'white',
+                        resize: 'vertical',
+                        minHeight: '120px',
+                        overflow: 'auto'
+                      }}
+                      placeholder="请输入JSON格式的条件..."
+                    />
+                  </DeviceInfo>
+                ) : (
+                  <Button onClick={() => {
+                    setNewRule({ priority: 0, enabled: 1, condition: '{\n  "temperature": {\n    "operator": "gt", \n    "value": 25\n  }\n}' });
+                    setSelectedConditionType('');
+                    setTimeCondition({ start: '08:00', end: '18:00' });
+                  }} style={{ marginTop: 16 }}>+ 创建新规则</Button>
+                )}
                 </>
               )}
             </div>
-            <div style={{
-              display: 'flex',
-              gap: '12px',
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px', 
               marginTop: '20px',
               paddingTop: '20px',
               borderTop: '2px solid rgba(255, 255, 255, 0.1)'
             }}>
               <Button
                 onClick={async () => {
-                  const rules = sceneRules[editingRuleScene.scene_id] || [];
-                  let hasError = false;
-                  for (const rule of rules) {
-                    const editState = ruleEditStates[rule.rule_id];
-                    if (!editState) continue;
-                    // 优先级
-                    if (editState.priority !== rule.priority) {
-                      try {
-                        await ruleUpdateField(rule.scene_id, rule.rule_id, 'priority', editState.priority);
-                      } catch (e) {
-                        showErrorTip(`规则${rule.rule_id}优先级保存失败`);
-                        hasError = true;
-                      }
-                    }
-                    // 启用
-                    if (editState.enabled !== rule.enabled) {
-                      try {
-                        await ruleUpdateField(rule.scene_id, rule.rule_id, 'enabled', editState.enabled);
-                      } catch (e) {
-                        showErrorTip(`规则${rule.rule_id}启用状态保存失败`);
-                        hasError = true;
-                      }
-                    }
-                    // condition
-                    try {
-                      let condObj = editState.condition;
-                      if (typeof condObj === 'string') {
-                        condObj = JSON.parse(condObj);
-                      }
-                      if (JSON.stringify(condObj) !== JSON.stringify(rule.condition)) {
-                        await ruleUpdateField(rule.scene_id, rule.rule_id, 'condition', condObj);
-                      }
-                    } catch (e) {
-                      showErrorTip(`规则${rule.rule_id}条件保存失败，格式需为合法JSON`);
-                      hasError = true;
-                    }
-                  }
-                  // 新建规则
                   if (newRule) {
-                    try {
-                      let condObj = newRule.condition;
-                      if (typeof condObj === 'string') {
-                        condObj = JSON.parse(condObj);
-                      }
-                      await addRule(
-                        editingRuleScene.scene_id,
-                        condObj,
-                        newRule.priority,
-                        newRule.enabled
-                      );
-                      showSuccessTip('新规则已创建');
-                      setNewRule(null);
-                    } catch (e) {
-                      showErrorTip('新规则创建失败，条件需为合法JSON');
-                      hasError = true;
-                    }
+                    await handleSaveRules();
                   }
-                  if (!hasError) {
-                    showSuccessTip('所有规则已保存');
-                    // 可选：刷新规则列表
-                    const response = await getAllRules(editingRuleScene.scene_id);
-                    setSceneRules(prev => ({
-                      ...prev,
-                      [editingRuleScene.scene_id]: Array.isArray(response.data.data) ? response.data.data : []
-                    }));
-                    setShowRuleModal(false);
-                  }
+                  await handleUpdateRules();
                 }}
-                style={{ 
-                  flex: 1,
-                  background: 'rgba(34, 197, 94, 0.3)',
-                  borderColor: 'rgba(34, 197, 94, 0.5)',
-                  fontSize: '16px',
-                  padding: '12px 24px'
+                style={{ flex: 1 }}
+              >
+                保存
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowRuleModal(false);
+                  setEditingRuleScene(null);
+                  setNewRule(null);
+                  setRuleEditStates({});
+                  setModalConditionType('');
+                  setModalTimeCondition({ start: '08:00', end: '18:00' });
+                  setModalWeekCondition([1, 2, 3, 4, 5]);
+                  setModalDateCondition({ start: '2024-01-01', end: '2024-12-31' });
+                  setModalTemperatureCondition({ operator: 'gt', value: 25 });
+                  setModalHumidityCondition({ operator: 'gt', value: 60 });
+                  setModalLightCondition({ operator: 'lt', value: 300 });
                 }}
-              >💾 保存所有规则</Button>
-              <Button 
-                onClick={() => setShowRuleModal(false)}
                 style={{ 
                   flex: 1,
                   background: 'rgba(108, 117, 125, 0.3)',
-                  borderColor: 'rgba(108, 117, 125, 0.5)',
-                  fontSize: '16px',
-                  padding: '12px 24px'
+                  borderColor: 'rgba(108, 117, 125, 0.5)'
                 }}
-              >❌ 关闭</Button>
+              >
+                取消
+              </Button>
             </div>
           </ModalContent>
         </Modal>
