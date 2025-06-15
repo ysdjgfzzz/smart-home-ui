@@ -27,25 +27,27 @@ const DEVICE_TYPES_CN = {
 
 // 样式组件
 const DetailsPanel = styled.div`
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 20px;
   margin-top: 15px;
-  color: #333;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(8px);
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   max-height: 60vh;
   overflow-y: auto;
 `;
 
 const DeviceInfo = styled.div`
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 15px;
-  color: #333;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   border-left: 4px solid ${props => {
     switch(props.deviceType) {
@@ -60,22 +62,14 @@ const DeviceInfo = styled.div`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
 `;
 
 const DeviceTitle = styled.h3`
   margin: 0 0 10px 0;
-  color: ${props => {
-    switch(props.deviceType) {
-      case 'conditioner': return '#4a00e0';
-      case 'lamp': return '#ff9800';
-      case 'dehumidifier': return '#2196f3';
-      case 'fan': return '#4caf50';
-      case 'curtain': return '#9c27b0';
-      default: return '#333';
-    }
-  }};
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 `;
 
 const InfoItem = styled.div`
@@ -91,13 +85,13 @@ const InfoItem = styled.div`
 
 const InfoLabel = styled.span`
   font-weight: bold;
-  color: #4a00e0;
+  color: rgba(255, 255, 255, 0.9);
   min-width: 100px;
 `;
 
 const InfoValue = styled.span`
-  color: #666;
-  background: rgba(0, 0, 0, 0.03);
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
   padding: 4px 8px;
   border-radius: 4px;
 `;
@@ -121,14 +115,20 @@ const Container = styled.div`
   align-items: center;
   min-height: 100vh;
   padding: 30px 20px;
-  background: linear-gradient(135deg, #8e2de2, #4a00e0);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
 `;
 
 const Title = styled.h1`
   margin-bottom: 30px;
   color: white;
   text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-size: 32px;
 `;
 
 const CardsContainer = styled.div`
@@ -141,26 +141,30 @@ const CardsContainer = styled.div`
 `;
 
 const RecommendationCard = styled.div`
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   gap: 20px;
   width: 100%;
   max-width: 500px;
-  color: #333;
-  transition: transform 0.3s ease;
+  color: white;
+  transition: all 0.3s ease;
 
   &:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
   }
 `;
 
 const SceneName = styled.h2`
-  color: #4a00e0;
+  color: white;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
 const ReasonText = styled.p`
@@ -174,40 +178,54 @@ const ButtonGroup = styled.div`
 `;
 
 const Button = styled.button`
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: ${props => props.primary ? 'rgba(66, 133, 244, 0.8)' : 'rgba(255, 255, 255, 0.1)'};
+  color: white;
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  
-  &:first-child {
-    background-color: #4a00e0;
-    color: white;
-    
-    &:hover {
-      background-color: #3a00b0;
-    }
+  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+
+  &:hover {
+    background: ${props => props.primary ? 'rgba(51, 103, 214, 0.9)' : 'rgba(255, 255, 255, 0.2)'};
+    transform: translateY(-1px);
   }
-  
-  &:last-child {
-    background-color: #f0f0f0;
-    
-    &:hover {
-      background-color: #e0e0e0;
-    }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 `;
 
 const DetailsButton = styled.button`
-  background: none;
-  border: none;
-  color: #4a00e0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-  font-size: 14px;
+  transition: all 0.3s ease;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
   align-self: flex-start;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
 
@@ -379,7 +397,7 @@ const RecommendationUI = () => {
         <Title>智能场景推荐</Title>
         <NoRecommendations>
           加载失败: {error.message}
-          <Button onClick={() => window.location.reload()}>重试</Button>
+          <Button primary onClick={() => window.location.reload()}>重试</Button>
         </NoRecommendations>
       </Container>
     );
@@ -428,6 +446,7 @@ const RecommendationUI = () => {
               
               <ButtonGroup>
                 <Button 
+                  primary
                   onClick={() => acceptRecommendation(
                     recommendation.scene_id,
                     localStorage.getItem('username')
