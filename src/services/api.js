@@ -75,8 +75,11 @@ export const getRuleById = async (sceneId, ruleId) => {
 };
 
 // 场景执行相关接口
-export const switchScene = async (sceneId) => {
-  return axios.post(`${API_URL}/execute/switch`, { scene_id: sceneId });
+export const switchScene = async (sceneId,Username) => {
+  return axios.post(`${API_URL}/execute/switch`, { 
+    scene_id: sceneId,
+    username: Username
+   });
 };
 
 export const switchToDefaultScene = async () => {
