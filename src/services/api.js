@@ -86,11 +86,8 @@ export const ruleUpdateField = async (scene_id, rule_id, field, value) => {
 };
 
 // 场景执行相关接口
-export const executeActivate = async (sceneId, username) => {
-  return axios.post(`${API_URL}/execute/activate`, { 
-    scene_id: sceneId,
-    username: username
-  });
+export const switchScene = async (sceneId) => {
+  return axios.post(`${API_URL}/execute/switch`, { scene_id: sceneId });
 };
 
 export const executeDeactivate = async () => {
