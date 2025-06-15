@@ -93,6 +93,10 @@ export const executeActivate = async (sceneId, username) => {
   });
 };
 
+export const switchScene = async (sceneId) => {
+  return axios.post(`${API_URL}/execute/switch`, { scene_id: sceneId });
+};
+
 export const executeDeactivate = async () => {
   return axios.post(`${API_URL}/execute/deactivate`);
 };
