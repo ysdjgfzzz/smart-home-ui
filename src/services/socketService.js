@@ -13,7 +13,7 @@ export const connectSocket = () => {
 
     socket.on('connect', () => {
       console.log('Socket.IO已连接, id=', socket.id);
-      showNormalTip('实时监控已连接');
+      // showNormalTip('实时监控已连接');
     });
 
     socket.on('disconnect', (reason) => {
