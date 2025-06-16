@@ -1,8 +1,9 @@
 // src/components/DeviceMonitorUI/DeviceMonitorUI.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { getAllDeviceStates, updateDeviceState } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_RANGES } from '../../constants/deviceTypes';
+import { connectSocket } from '../../services/socketService';
 
 // 返回按钮
 const BackButton = styled.button`
@@ -327,9 +328,9 @@ const DeviceMonitorUI = () => {
       };
     }
     return {
-    temperature: '--',
-    illumination: '--',
-    humidity: '--'
+      temperature: '--',
+      illumination: '--',
+      humidity: '--'
     };
   });
   const [error, setError] = React.useState(null);
@@ -337,7 +338,14 @@ const DeviceMonitorUI = () => {
   const [loading, setLoading] = React.useState(true);
 
   // 监听监控数据更新事件
-  React.useEffect(() => {
+  useEffect(() => {
+    // 检查是否已登录
+    const username = localStorage.getItem('username');
+    if (username) {
+      // 连接 Socket.IO
+      connectSocket();
+    }
+
     // 监控数据更新事件处理函数
     const handleMonitorDataUpdate = (event) => {
       const data = event.detail;

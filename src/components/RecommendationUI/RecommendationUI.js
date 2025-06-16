@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styled from 'styled-components';
 import { getRecommendations,switchScene } from '../../services/api';
+import { connectSocket } from '../../services/socketService';
 
 const SOURCE_CONFIG = {
   deepseek: {
@@ -288,6 +289,13 @@ const RecommendationUI = () => {
   const [expandedCard, setExpandedCard] = useState(null);
 
   useEffect(() => {
+    // 检查是否已登录
+    const username = localStorage.getItem('username');
+    if (username) {
+      // 连接 Socket.IO
+      connectSocket();
+    }
+
     const fetchRecommendations = async () => {
       try {
         setLoading(true);
@@ -324,31 +332,33 @@ const RecommendationUI = () => {
 
     fetchRecommendations();
   }, []);
+
   const formatDeviceValue = (deviceType, key, value) => {
-  const units = {
-    temperature: '°C',
-    humidity: '%',
-    position: '%',
-    brightness: 'lm'
+    const units = {
+      temperature: '°C',
+      humidity: '%',
+      position: '%',
+      brightness: 'lm'
+    };
+
+    const mappings = {
+      mode: {
+        cool: '制冷',
+        heat: '制热'
+      },
+      speed: {
+        low: '低速',
+        medium: '中速',
+        high: '高速'
+      },
+      // 其他映射...
+    };
+
+    if (mappings[key]?.[value]) return mappings[key][value];
+    if (units[key]) return `${value}${units[key]}`;
+    return value;
   };
 
-  const mappings = {
-    mode: {
-      cool: '制冷',
-      heat: '制热'
-    },
-    speed: {
-      low: '低速',
-      medium: '中速',
-      high: '高速'
-    },
-    // 其他映射...
-  };
-
-  if (mappings[key]?.[value]) return mappings[key][value];
-  if (units[key]) return `${value}${units[key]}`;
-  return value;
-};
   const acceptRecommendation = async (sceneId, Username) => {
     try {
       setLoading(true);
@@ -368,49 +378,49 @@ const RecommendationUI = () => {
   };
 
   const renderDeviceState = (deviceType, state) => {
-  if (!state) return null;
+    if (!state) return null;
 
-  return (
-    <DeviceInfo deviceType={deviceType}>
-      <DeviceTitle deviceType={deviceType}>
-        {DEVICE_TYPES_CN[deviceType] || deviceType}
-      </DeviceTitle>
-      
-      <InfoItem>
-        <InfoLabel>电源状态</InfoLabel>
-        <InfoValue>{state.power === 'on' ? '开启' : '关闭'}</InfoValue>
-      </InfoItem>
+    return (
+      <DeviceInfo deviceType={deviceType}>
+        <DeviceTitle deviceType={deviceType}>
+          {DEVICE_TYPES_CN[deviceType] || deviceType}
+        </DeviceTitle>
+        
+        <InfoItem>
+          <InfoLabel>电源状态</InfoLabel>
+          <InfoValue>{state.power === 'on' ? '开启' : '关闭'}</InfoValue>
+        </InfoItem>
 
-      {state.power === 'on' && (
-        <>
-          {Object.entries(state).map(([key, value]) => {
-            if (key === 'power') return null;
-            return (
-              <InfoItem key={key}>
-                <InfoLabel>
-                  {{
-                    temperature: '目标温度',
-                    mode: '运行模式',
-                    speed: '风速',
-                    brightness: '亮度',
-                    color: '色温',
-                    humidity: '目标湿度',
-                    level: '运行等级',
-                    position: '开合度',
-                    style: '窗帘样式'
-                  }[key] || key}
-                </InfoLabel>
-                <InfoValue>
-                  {formatDeviceValue(deviceType, key, value)}
-                </InfoValue>
-              </InfoItem>
-            );
-          })}
-        </>
-      )}
-    </DeviceInfo>
-  );
-};
+        {state.power === 'on' && (
+          <>
+            {Object.entries(state).map(([key, value]) => {
+              if (key === 'power') return null;
+              return (
+                <InfoItem key={key}>
+                  <InfoLabel>
+                    {{
+                      temperature: '目标温度',
+                      mode: '运行模式',
+                      speed: '风速',
+                      brightness: '亮度',
+                      color: '色温',
+                      humidity: '目标湿度',
+                      level: '运行等级',
+                      position: '开合度',
+                      style: '窗帘样式'
+                    }[key] || key}
+                  </InfoLabel>
+                  <InfoValue>
+                    {formatDeviceValue(deviceType, key, value)}
+                  </InfoValue>
+                </InfoItem>
+              );
+            })}
+          </>
+        )}
+      </DeviceInfo>
+    );
+  };
 
   const handleBackToControl = () => {
     window.location.href = '/main';

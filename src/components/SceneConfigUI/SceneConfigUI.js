@@ -5,6 +5,7 @@ import { getAllScenes, addScene, updateScene, removeScene, updateSceneField, upd
 import { DEVICE_TYPES, DEVICE_TYPES_CN, DEVICE_RANGES } from '../../constants/deviceTypes';
 import { showSuccessTip, showErrorTip } from '../../services/tools';
 import HistoryControllerUI from './HistoryControllerUI';
+import { connectSocket } from '../../services/socketService';
 
 // 返回按钮
 const BackButton = styled.button`
@@ -882,6 +883,13 @@ const SceneConfigUI = () => {
   useEffect(() => {
     fetchScenes();
 
+    // 检查是否已登录
+    const username = localStorage.getItem('username');
+    if (username) {
+      // 连接 Socket.IO
+      connectSocket();
+    }
+
     // 监听监控数据更新
     const handleMonitorDataUpdate = (event) => {
       const data = event.detail;
@@ -1178,7 +1186,7 @@ const SceneConfigUI = () => {
       }
 
       const response = await executeActivate(sceneId, username);
-      // console.log(response);
+      console.log(response);
       if (response.data && response.data.code === 501) {
         showErrorTip('操作失败，请先启用该场景');
         return;

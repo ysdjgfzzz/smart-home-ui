@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { connectSocket } from '../../services/socketService';
 
 // 页面整体容器 - 使用与GuidingUI和LoginRegisterUI相同的渐变背景
 const PageContainer = styled.div`
@@ -264,6 +265,13 @@ const MainControlUI = () => {
   // 启动和清理动画
   useEffect(() => {
     animationRef.current = requestAnimationFrame(animate);
+    
+    // 检查是否已登录
+    const username = localStorage.getItem('username');
+    if (username) {
+      // 连接 Socket.IO
+      connectSocket();
+    }
     
     return () => {
       if (animationRef.current) {

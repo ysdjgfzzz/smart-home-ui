@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { login } from '../../services/api';
 import { showSuccessTip, showErrorTip, showNormalTip } from '../../services/tools';
-import io from 'socket.io-client';
+import { connectSocket } from '../../services/socketService';
 
 // 页面整体容器，使用与GuidingUI相同的渐变背景
 const PageContainer = styled.div`
@@ -174,53 +174,6 @@ const LoginRegisterUI = () => {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  // 连接Socket.IO
-  const connectSocketIO = () => {
-    try {
-      const socket = io('http://localhost:8000');
-
-      socket.on('connect', () => {
-        console.log('Socket.IO已连接, id=', socket.id);
-        showNormalTip('实时监控已连接');
-      });
-
-      socket.on('disconnect', (reason) => {
-        console.log('Socket.IO已断开:', reason);
-      });
-
-      socket.on('monitor_data', (payload) => {
-        console.log('收到监控数据:', payload);
-        if (payload) {
-          // 将完整的监控数据存储到localStorage
-          const monitorData = {
-            ...payload,
-            lastUpdated: new Date().toISOString()
-          };
-          localStorage.setItem('monitorData', JSON.stringify(monitorData));
-          
-          // 触发一个自定义事件,通知其他组件数据已更新
-          const event = new CustomEvent('monitorDataUpdate', { 
-            detail: monitorData 
-          });
-          window.dispatchEvent(event);
-        }
-      });
-
-      socket.on('scene_update', (payload) => {
-        console.log('收到场景更新:', payload);
-      });
-
-      socket.on('connect_error', (err) => {
-        console.error('Socket.IO连接错误:', err.message);
-      });
-
-      // 将socket实例存储到window对象,方便其他组件使用
-      window.smartHomeSocket = socket;
-    } catch (error) {
-      console.error('Socket.IO连接失败:', error);
-    }
-  };
-
   const handleLogin = async () => {
     try {
       const response = await login(username, password);
@@ -232,7 +185,7 @@ const LoginRegisterUI = () => {
         showSuccessTip('登录成功！');
         
         // 连接Socket.IO
-        connectSocketIO();
+        connectSocket();
         
         navigate('/main');
       } else if (code === 504) {
