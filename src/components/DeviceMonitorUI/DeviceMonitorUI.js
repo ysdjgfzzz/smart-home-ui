@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { getAllDeviceStates, updateDeviceState } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_RANGES } from '../../constants/deviceTypes';
+import ShowBehaviorUI from './ShowBehaviorUI';
 import { connectSocket } from '../../services/socketService';
 
 // 返回按钮
@@ -27,6 +28,31 @@ const BackButton = styled.button`
     background: rgba(51, 103, 214, 0.9);
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const Button = styled.button`
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(66, 133, 244, 0.8);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+
+  &:hover {
+    background: rgba(51, 103, 214, 0.9);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 `;
 
@@ -336,6 +362,7 @@ const DeviceMonitorUI = () => {
   const [error, setError] = React.useState(null);
   const [devices, setDevices] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [showBehavior, setShowBehavior] = useState(false);
 
   // 监听监控数据更新事件
   useEffect(() => {
@@ -893,8 +920,17 @@ const DeviceMonitorUI = () => {
 
   return (
     <PageContainer>
-      <BackButton onClick={handleBackToControl}>← 返回控制中心</BackButton>
-    <Container>
+      {/* 顶部返回按钮，根据showBehavior切换文字和功能 */}
+      <BackButton onClick={() => {
+        if (showBehavior) {
+          setShowBehavior(false);
+        } else {
+          handleBackToControl();
+        }
+      }}>
+        ← {showBehavior ? '返回设备监控' : '返回控制中心'}
+      </BackButton>
+      <Container>
         <Title>设备监控</Title>
         <ContentWrapper>
           <DeviceSection>
@@ -935,7 +971,6 @@ const DeviceMonitorUI = () => {
               </DeviceCard>
             )}
           </DeviceSection>
-
         </ContentWrapper>
         
         {/* 环境监控信息条 - 右上角固定位置 */}
@@ -962,7 +997,43 @@ const DeviceMonitorUI = () => {
             </>
           )}
         </EnvironmentBar>
-    </Container>
+      </Container>
+      {/* 用户记录按钮，仅在未进入ShowBehaviorUI时显示 */}
+      {!showBehavior && (
+        <Button
+          style={{
+            position: 'absolute',
+            bottom: '80px',
+            right: '80px',
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '40px',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            zIndex: 1000
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+            e.target.style.transform = 'scale(1.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+            e.target.style.transform = 'scale(1)';
+          }}
+          onClick={() => setShowBehavior(true)}
+          title="用户记录"
+        >
+          📜
+        </Button>
+      )}
+      {/* 用户记录页面 */}
+      {showBehavior && <ShowBehaviorUI />}
     </PageContainer>
   );
 };

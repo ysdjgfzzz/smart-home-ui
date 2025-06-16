@@ -145,6 +145,11 @@ export const getAllDeviceStates = async () => {
   return axios.post(`${API_URL}/device/states`);
 };
 
+// 查询所有用户的全部行为
+export const findAllBehavior = async () => {
+  return axios.post(`${API_URL}/history/behavior/findAll`);
+};
+
 // 环境状态接口
 // export const getEnvironmentStatus = async () => {
 //   return axios.get(`${ACCESS_URL}/environment`);
