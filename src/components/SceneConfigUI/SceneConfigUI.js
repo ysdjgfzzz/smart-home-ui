@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { getAllScenes, addScene, updateScene, removeScene, updateSceneField, updateSceneDevice, executeActivate, executeDeactivate, getAllRules, ruleUpdateField, addRule, removeRule } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_TYPES_CN, DEVICE_RANGES } from '../../constants/deviceTypes';
 import { showSuccessTip, showErrorTip } from '../../services/tools';
+import HistoryControllerUI from './HistoryControllerUI';
 
 const PageContainer = styled.div`
   height: 100vh;
@@ -850,6 +851,7 @@ const SceneConfigUI = () => {
   const [showTemperatureModal, setShowTemperatureModal] = useState(false);
   const [showHumidityModal, setShowHumidityModal] = useState(false);
   const [showLightModal, setShowLightModal] = useState(false);
+  const [showRecycleBin, setShowRecycleBin] = useState(false); // 新增：回收站页面显示状态
   const [rules, setRules] = useState([]);
 
   useEffect(() => {
@@ -1066,7 +1068,7 @@ const SceneConfigUI = () => {
       if (response.data.code === 200) {
         showSuccessTip("创建新场景成功");
       } else {
-        showErrorTip("创建新场景失败：回收站存在同名场景,请先删除");
+        showErrorTip("创建新场景失败：已有同名场景或回收站存在同名场景,请先删除");
       }
     } catch (error) {
       showErrorTip("创建新场景失败");
@@ -1971,6 +1973,36 @@ const SceneConfigUI = () => {
     }
   };
 
+  // 如果显示回收站，则渲染回收站组件
+  if (showRecycleBin) {
+    return (
+      <div style={{ position: 'relative' }}>
+        <HistoryControllerUI onSceneRecover={fetchScenes} />
+        {/* 返回按钮 */}
+        <Button
+          style={{
+            position: 'absolute',
+            top: '20px',
+            left: '20px',
+            padding: '10px 20px',
+            background: 'rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '8px',
+            color: 'white',
+            cursor: 'pointer',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+          onClick={() => setShowRecycleBin(false)}
+        >
+          ← 返回场景配置
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <PageContainer>
       <Container>
@@ -2492,8 +2524,7 @@ const SceneConfigUI = () => {
           e.target.style.transform = 'scale(1)';
         }}
         onClick={() => {
-          // 这里可以添加回收站功能
-          showSuccessTip('回收站功能待实现');
+          setShowRecycleBin(true);
         }}
         title="回收站"
       >
