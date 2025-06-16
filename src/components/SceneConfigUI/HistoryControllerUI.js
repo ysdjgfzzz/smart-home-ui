@@ -27,21 +27,27 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 30px;
+    display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
 const Title = styled.h1`
+
   color: white;
-  font-size: 2.5rem;
+  font-weight: bold;
   margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
 const HeaderActions = styled.div`
+  position: absolute;
+  top: 45px;
+  right: 30px;
   display: flex;
   gap: 15px;
 `;
@@ -709,7 +715,7 @@ const HistoryControllerUI = ({ onSceneRecover }) => {
     <PageContainer>
       <Container>
         <Header>
-          <Title>回收站</Title>
+          <h1>回收站</h1>
           <HeaderActions>
             <RefreshButton 
               onClick={fetchRecycleBinScenes}
