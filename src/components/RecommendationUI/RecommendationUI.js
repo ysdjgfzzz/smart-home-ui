@@ -109,6 +109,31 @@ const SourceTag = styled.span`
 `;
 
 
+// 返回按钮
+const BackButton = styled.button`
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(66, 133, 244, 0.8);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1001;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background: rgba(51, 103, 214, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+`;
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -387,13 +412,24 @@ const RecommendationUI = () => {
   );
 };
 
+  const handleBackToControl = () => {
+    window.location.href = '/main';
+  };
+
   if (loading) {
-    return <Container><Title>智能场景推荐</Title><NoRecommendations>加载中...</NoRecommendations></Container>;
+    return (
+      <Container>
+        <BackButton onClick={handleBackToControl}>← 返回控制中心</BackButton>
+        <Title>智能场景推荐</Title>
+        <NoRecommendations>加载中...</NoRecommendations>
+      </Container>
+    );
   }
 
   if (error) {
     return (
       <Container>
+        <BackButton onClick={handleBackToControl}>← 返回控制中心</BackButton>
         <Title>智能场景推荐</Title>
         <NoRecommendations>
           加载失败: {error.message}
@@ -405,6 +441,7 @@ const RecommendationUI = () => {
 
   return (
     <Container>
+      <BackButton onClick={handleBackToControl}>← 返回控制中心</BackButton>
       <Title>智能场景推荐</Title>
       
       {recommendations.length > 0 ? (

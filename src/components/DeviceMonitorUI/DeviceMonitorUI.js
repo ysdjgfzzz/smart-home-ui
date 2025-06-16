@@ -4,6 +4,31 @@ import styled from 'styled-components';
 import { getAllDeviceStates, updateDeviceState } from '../../services/api';
 import { DEVICE_TYPES, DEVICE_RANGES } from '../../constants/deviceTypes';
 
+// 返回按钮
+const BackButton = styled.button`
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(66, 133, 244, 0.8);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1001;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background: rgba(51, 103, 214, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+`;
+
 // 页面整体容器 - 使用与登录注册界面相同的渐变背景
 const PageContainer = styled.div`
   height: 100vh;
@@ -854,8 +879,13 @@ const DeviceMonitorUI = () => {
     loadData();
   }, []);
 
+  const handleBackToControl = () => {
+    window.location.href = '/main';
+  };
+
   return (
     <PageContainer>
+      <BackButton onClick={handleBackToControl}>← 返回控制中心</BackButton>
     <Container>
         <Title>设备监控</Title>
         <ContentWrapper>

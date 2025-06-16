@@ -6,6 +6,31 @@ import { DEVICE_TYPES, DEVICE_TYPES_CN, DEVICE_RANGES } from '../../constants/de
 import { showSuccessTip, showErrorTip } from '../../services/tools';
 import HistoryControllerUI from './HistoryControllerUI';
 
+// 返回按钮
+const BackButton = styled.button`
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(66, 133, 244, 0.8);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1001;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background: rgba(51, 103, 214, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+`;
+
 const PageContainer = styled.div`
   height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -2003,8 +2028,13 @@ const SceneConfigUI = () => {
     );
   }
 
+  const handleBackToControl = () => {
+    window.location.href = '/main';
+  };
+
   return (
     <PageContainer>
+      <BackButton onClick={handleBackToControl}>← 返回控制中心</BackButton>
       <Container>
       <h1>场景配置</h1>
       <Button onClick={handleCreateScene}>创建新场景</Button>
