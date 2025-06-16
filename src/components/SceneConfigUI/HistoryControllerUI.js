@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { getRecycleBinScenes, recoverScene, clearRecycleBin } from '../../services/api';
+import { getRecycleBinScenes, recoverScene, clearRecycleBin, getAllRules } from '../../services/api';
 import { showSuccessTip, showErrorTip } from '../../services/tools';
 
 const PageContainer = styled.div`
@@ -144,19 +144,22 @@ const InfoRow = styled.div`
 `;
 
 const InfoLabel = styled.span`
-  font-weight: 500;
+  font-weight: bold;
+  color: white;
 `;
 
 const InfoValue = styled.span`
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
+  color: white;
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
   gap: 10px;
   margin-top: 15px;
+`;
+
+const ViewDetailButton = styled(Button)`
+  flex: 1;
 `;
 
 const RecoverButton = styled(Button)`
@@ -228,12 +231,11 @@ const ModalContent = styled.div`
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 30px;
+  padding: 20px;
   border-radius: 12px;
   width: 90%;
-  max-width: 400px;
+  max-width: 500px;
   color: white;
-  text-align: center;
 `;
 
 const ModalTitle = styled.h3`
@@ -253,10 +255,76 @@ const ModalActions = styled.div`
   justify-content: center;
 `;
 
+const DeviceInfo = styled.div`
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+`;
+
+const DeviceTitle = styled.h3`
+  margin: 0 0 10px 0;
+  color: white;
+  text-transform: capitalize;
+`;
+
+const InfoItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const SceneDetailHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+`;
+
+const SceneDetailTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  
+  h2 {
+    margin: 0;
+  }
+`;
+
+const SceneStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+`;
+
+const StatusBadge = styled.span`
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  background: ${props => props.enabled ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)'};
+`;
+
+const PriorityBadge = styled.span`
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.2);
+`;
+
 const HistoryControllerUI = ({ onSceneRecover }) => {
   const [scenes, setScenes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedScene, setSelectedScene] = useState(null);
+  const [sceneRules, setSceneRules] = useState({});
   const [operationLoading, setOperationLoading] = useState(false);
 
   // 获取回收站场景列表
@@ -343,6 +411,296 @@ const HistoryControllerUI = ({ onSceneRecover }) => {
     }
   };
 
+  const handleViewDetail = async (scene) => {
+    setSelectedScene(scene);
+    setShowDetailModal(true);
+    try {
+      const response = await getAllRules(scene.scene_id);
+      const rulesData = Array.isArray(response.data.data) ? response.data.data : [];
+      setSceneRules(prev => ({
+        ...prev,
+        [scene.scene_id]: rulesData
+      }));
+    } catch (error) {
+      console.error('获取场景规则失败:', error);
+      setSceneRules(prev => ({
+        ...prev,
+        [scene.scene_id]: []
+      }));
+    }
+   };
+
+  // 渲染设备状态
+  const renderDeviceState = (deviceType, state) => {
+    if (!state) return null;
+
+    switch (deviceType) {
+      case 'conditioner':
+        return (
+          <DeviceInfo>
+            <DeviceTitle>空调</DeviceTitle>
+            <InfoItem>
+              <InfoLabel>电源状态</InfoLabel>
+              <InfoValue>{state.power === 'on' ? '开启' : '关闭'}</InfoValue>
+            </InfoItem>
+            {state.power === 'on' && (
+              <>
+                <InfoItem>
+                  <InfoLabel>当前温度</InfoLabel>
+                  <InfoValue>{state.temperature || '--'}°C</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>运行模式</InfoLabel>
+                  <InfoValue>
+                    {state.mode === 'cool' ? '制冷' :
+                     state.mode === 'heat' ? '制热' : '--'}
+                  </InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>风速</InfoLabel>
+                  <InfoValue>
+                    {state.speed === 'low' ? '低速' :
+                     state.speed === 'medium' ? '中速' : 
+                     state.speed === 'high' ? '高速' : '--'}
+                  </InfoValue>
+                </InfoItem>
+              </>
+            )}
+          </DeviceInfo>
+        );
+
+      case 'lamp':
+        return (
+          <DeviceInfo>
+            <DeviceTitle>智能灯</DeviceTitle>
+            <InfoItem>
+              <InfoLabel>电源状态</InfoLabel>
+              <InfoValue>{state.power === 'on' ? '开启' : '关闭'}</InfoValue>
+            </InfoItem>
+            {state.power === 'on' && (
+              <>
+                <InfoItem>
+                  <InfoLabel>当前亮度</InfoLabel>
+                  <InfoValue>{state.brightness || '--'} lm</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>色温</InfoLabel>
+                  <InfoValue>
+                    {state.color === 'warm' ? '暖白' :
+                     state.color === 'neutral' ? '正白' : 
+                     state.color === 'cool' ? '冷白' : '--'}
+                  </InfoValue>
+                </InfoItem>
+              </>
+            )}
+          </DeviceInfo>
+        );
+
+      case 'dehumidifier':
+        return (
+          <DeviceInfo>
+            <DeviceTitle>除湿器</DeviceTitle>
+            <InfoItem>
+              <InfoLabel>电源状态</InfoLabel>
+              <InfoValue>{state.power === 'on' ? '开启' : '关闭'}</InfoValue>
+            </InfoItem>
+            {state.power === 'on' && (
+              <>
+                <InfoItem>
+                  <InfoLabel>当前设定湿度</InfoLabel>
+                  <InfoValue>{state.humidity || '--'}%</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>运行等级</InfoLabel>
+                  <InfoValue>
+                    {state.level === 'auto' ? '自动' :
+                     state.level === 'powerful' ? '强力' : 
+                     state.level === 'quiet' ? '静音' : '--'}
+                  </InfoValue>
+                </InfoItem>
+              </>
+            )}
+          </DeviceInfo>
+        );
+
+      case 'fan':
+        return (
+          <DeviceInfo>
+            <DeviceTitle>风扇</DeviceTitle>
+            <InfoItem>
+              <InfoLabel>电源状态</InfoLabel>
+              <InfoValue>{state.power === 'on' ? '开启' : '关闭'}</InfoValue>
+            </InfoItem>
+            {state.power === 'on' && (
+              <InfoItem>
+                <InfoLabel>风速</InfoLabel>
+                <InfoValue>
+                  {state.speed === 'low' ? '低速' :
+                   state.speed === 'medium' ? '中速' : 
+                   state.speed === 'high' ? '高速' : '--'}
+                </InfoValue>
+              </InfoItem>
+            )}
+          </DeviceInfo>
+        );
+
+      case 'curtain':
+        return (
+          <DeviceInfo>
+            <DeviceTitle>窗帘</DeviceTitle>
+            <InfoItem>
+              <InfoLabel>电源状态</InfoLabel>
+              <InfoValue>{state.power === 'on' ? '开启' : '关闭'}</InfoValue>
+            </InfoItem>
+            {state.power === 'on' && (
+              <>
+                <InfoItem>
+                  <InfoLabel>当前开合度</InfoLabel>
+                  <InfoValue>{state.position || '--'}%</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>窗帘样式</InfoLabel>
+                  <InfoValue>
+                    {state.style === 'sunshade' ? '遮阳帘' :
+                     state.style === 'sheer' ? '薄纱帘' : 
+                     state.style === 'blind' ? '百叶帘' : '--'}
+                  </InfoValue>
+                </InfoItem>
+              </>
+            )}
+          </DeviceInfo>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // 渲染规则
+  const renderRules = (sceneId) => {
+    const rules = sceneRules[sceneId];
+    if (!Array.isArray(rules) || rules.length === 0) {
+      return (
+        <DeviceInfo>
+          <DeviceTitle>场景规则</DeviceTitle>
+          <InfoItem>
+            <InfoValue>暂无规则配置</InfoValue>
+          </InfoItem>
+        </DeviceInfo>
+      );
+    }
+
+    return (
+      <DeviceInfo>
+        <DeviceTitle>场景规则</DeviceTitle>
+        {rules.map((rule, index) => {
+          let condition = {};
+          try {
+            condition = typeof rule.condition === 'string' ? JSON.parse(rule.condition) : rule.condition;
+          } catch (e) {
+            console.error('解析规则条件失败:', e);
+            condition = {};
+          }
+
+          return (
+            <InfoItem key={rule.rule_id || index}>
+              <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <InfoLabel>规则 {index + 1}</InfoLabel>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <StatusBadge enabled={rule.enabled === 1}>
+                      {rule.enabled === 1 ? '已启用' : '已禁用'}
+                    </StatusBadge>
+                    <PriorityBadge>
+                      优先级：{rule.priority || 0}
+                    </PriorityBadge>
+                  </div>
+                </div>
+                <div style={{ marginLeft: '10px' }}>
+                  {condition.temperature && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>温度条件：</InfoLabel>
+                      {condition.temperature.operator === 'range' ? (
+                        <InfoValue>
+                          {condition.temperature.min}°C ~ {condition.temperature.max}°C
+                        </InfoValue>
+                      ) : (
+                        <InfoValue>
+                          {condition.temperature.operator === 'gt' ? '大于' : 
+                           condition.temperature.operator === 'lt' ? '小于' : 
+                           condition.temperature.operator === 'eq' ? '等于' : ''} {condition.temperature.value}°C
+                        </InfoValue>
+                      )}
+                    </div>
+                  )}
+                  {condition.illumination && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>光照条件：</InfoLabel>
+                      {condition.illumination.operator === 'range' ? (
+                        <InfoValue>
+                          {condition.illumination.min} lux ~ {condition.illumination.max} lux
+                        </InfoValue>
+                      ) : (
+                        <InfoValue>
+                          {condition.illumination.operator === 'gt' ? '大于' : 
+                           condition.illumination.operator === 'lt' ? '小于' : 
+                           condition.illumination.operator === 'eq' ? '等于' : ''} {condition.illumination.value} lux
+                        </InfoValue>
+                      )}
+                    </div>
+                  )}
+                  {condition.humidity && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>湿度条件：</InfoLabel>
+                      {condition.humidity.operator === 'range' ? (
+                        <InfoValue>
+                          {condition.humidity.min}% ~ {condition.humidity.max}%
+                        </InfoValue>
+                      ) : (
+                        <InfoValue>
+                          {condition.humidity.operator === 'gt' ? '大于' : 
+                           condition.humidity.operator === 'lt' ? '小于' : 
+                           condition.humidity.operator === 'eq' ? '等于' : ''} {condition.humidity.value}%
+                        </InfoValue>
+                      )}
+                    </div>
+                  )}
+                  {condition.time && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>时间条件：</InfoLabel>
+                      <InfoValue>
+                        {condition.time.start} ~ {condition.time.end}
+                      </InfoValue>
+                    </div>
+                  )}
+                  {condition.week && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>星期条件：</InfoLabel>
+                      <InfoValue>
+                        {condition.week.map(day => {
+                          const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                          return weekdays[day] || day;
+                        }).join('、')}
+                      </InfoValue>
+                    </div>
+                  )}
+                  {condition.date && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <InfoLabel>日期条件：</InfoLabel>
+                      <InfoValue>
+                        {condition.date.start} 至 {condition.date.end}
+                      </InfoValue>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </InfoItem>
+          );
+        })}
+      </DeviceInfo>
+    );
+  };
+
   useEffect(() => {
     fetchRecycleBinScenes();
   }, []);
@@ -380,35 +738,8 @@ const HistoryControllerUI = ({ onSceneRecover }) => {
             {scenes.map((scene) => (
               <SceneCard key={scene.scene_id}>
                 <SceneName>{scene.name || '未命名场景'}</SceneName>
-                <SceneDescription>
-                  {scene.description || '暂无描述'}
-                </SceneDescription>
                 
                 <SceneInfo>
-                  <InfoRow>
-                    <InfoLabel>场景ID:</InfoLabel>
-                    <InfoValue>{scene.scene_id}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>创建者:</InfoLabel>
-                    <InfoValue>{scene.creator || '未知'}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>优先级:</InfoLabel>
-                    <InfoValue>{scene.priority || 0}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>创建时间:</InfoLabel>
-                    <InfoValue>{formatDate(scene.created_at)}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>更新时间:</InfoLabel>
-                    <InfoValue>{formatDate(scene.updated_at)}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>状态:</InfoLabel>
-                    <InfoValue>{scene.enabled ? '启用' : '禁用'}</InfoValue>
-                  </InfoRow>
                   {scene.config && scene.config.length > 0 && (
                     <InfoRow>
                       <InfoLabel>设备配置:</InfoLabel>
@@ -418,6 +749,12 @@ const HistoryControllerUI = ({ onSceneRecover }) => {
                 </SceneInfo>
 
                 <ButtonGroup>
+                  <ViewDetailButton
+                    onClick={() => handleViewDetail(scene)}
+                    disabled={operationLoading}
+                  >
+                    查看详情
+                  </ViewDetailButton>
                   <RecoverButton
                     onClick={() => handleRecoverScene(scene.scene_id, scene.name)}
                     disabled={operationLoading}
@@ -453,6 +790,40 @@ const HistoryControllerUI = ({ onSceneRecover }) => {
                 {operationLoading ? '清空中...' : '确认清空'}
               </ClearButton>
             </ModalActions>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* 场景详情模态框 */}
+      {showDetailModal && selectedScene && (
+        <Modal>
+          <ModalContent>
+            <SceneDetailHeader>
+              <SceneDetailTitle>
+                 <h2>场景详情：{selectedScene.name}</h2>
+               </SceneDetailTitle>
+              <SceneStatus>
+                <StatusBadge enabled={selectedScene.enabled === 1}>
+                  {selectedScene.enabled === 1 ? '已启用' : '已禁用'}
+                </StatusBadge>
+                <PriorityBadge>
+                  优先级：{selectedScene.priority || 0}
+                </PriorityBadge>
+              </SceneStatus>
+            </SceneDetailHeader>
+
+            <div style={{ marginBottom: '20px', maxHeight: '60vh', overflow: 'auto', padding: '10px' }}>
+              {renderDeviceState('conditioner', selectedScene.config?.conditioner)}
+              {renderDeviceState('lamp', selectedScene.config?.lamp)}
+              {renderDeviceState('dehumidifier', selectedScene.config?.dehumidifier)}
+              {renderDeviceState('fan', selectedScene.config?.fan)}
+              {renderDeviceState('curtain', selectedScene.config?.curtain)}
+              {renderRules(selectedScene.scene_id)}
+            </div>
+
+            <ButtonGroup>
+               <Button onClick={() => setShowDetailModal(false)}>关闭</Button>
+             </ButtonGroup>
           </ModalContent>
         </Modal>
       )}
