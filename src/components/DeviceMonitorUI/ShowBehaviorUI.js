@@ -17,6 +17,7 @@ const PageContainer = styled.div`
 
 const Container = styled.div`
   max-width: 1200px;
+  min-width: 1200px;
   width: 100%;
   max-height: 70vh;         // 最大高度为视口高度的70%
   margin: 60px auto 0 auto; // 顶部留白
@@ -66,15 +67,17 @@ const ShowBehaviorUI = () => {
   const [behaviorList, setBehaviorList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const username = localStorage.getItem('username');
 
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       setError(null);
       try {
-        const behaviorRes = await findAllBehavior();
-        const allBehaviors = behaviorRes?.data?.data || [];
+        const behaviorRes = await findAllBehavior(username);
+        const allBehaviors = Array.isArray(behaviorRes?.data?.data) ? behaviorRes.data.data : []
         setBehaviorList(allBehaviors);
+        // console.log(behaviorList);
       } catch (err) {
         setError('获取行为记录失败');
       } finally {
