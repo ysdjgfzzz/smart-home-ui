@@ -47,6 +47,54 @@ const PageContainer = styled.div`
   overflow-y: auto;
 `;
 
+// 环境监控信息条 - 右上角贴边水平展示
+const EnvironmentBar = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  
+  @media (max-width: 768px) {
+    position: relative;
+    top: 0;
+    right: 0;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+`;
+
+// 环境信息项
+const EnvironmentItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 80px;
+`;
+
+// 环境信息标签
+const EnvironmentLabel = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+`;
+
+// 环境信息值
+const EnvironmentValue = styled.span`
+  font-size: 16px;
+  color: white;
+  font-weight: 500;
+`;
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -828,6 +876,23 @@ const ConditionTemplateSelector = ({
 };
 
 const SceneConfigUI = () => {
+  const [environmentStatus, setEnvironmentStatus] = useState(() => {
+    // 初始化时从localStorage读取监控数据
+    const savedData = localStorage.getItem('monitorData');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      return {
+        temperature: data.environment?.temperature || '--',
+        illumination: data.environment?.illumination || '--',
+        humidity: data.environment?.humidity || '--'
+      };
+    }
+    return {
+      temperature: '--',
+      illumination: '--',
+      humidity: '--'
+    };
+  });
   const [scenes, setScenes] = useState(() => {
     // 初始化时尝试从 localStorage 获取缓存的场景数据
     const cachedScenes = localStorage.getItem('scenes');
@@ -895,6 +960,14 @@ const SceneConfigUI = () => {
       const data = event.detail;
       if (data) {
         setCurrentSceneId(data.active);
+        // 更新环境状态
+        if (data.environment) {
+          setEnvironmentStatus({
+            temperature: data.environment.temperature || '--',
+            illumination: data.environment.illumination || '--',
+            humidity: data.environment.humidity || '--'
+          });
+        }
       }
     };
 
@@ -2533,6 +2606,22 @@ const SceneConfigUI = () => {
         </Modal>
       )}
       </Container>
+      
+      {/* 环境监控信息条 - 右上角固定位置 */}
+      <EnvironmentBar>
+        <EnvironmentItem>
+          <EnvironmentLabel>温度</EnvironmentLabel>
+          <EnvironmentValue>{environmentStatus.temperature || '--'} °C</EnvironmentValue>
+        </EnvironmentItem>
+        <EnvironmentItem>
+          <EnvironmentLabel>光照</EnvironmentLabel>
+          <EnvironmentValue>{environmentStatus.illumination || '--'} lx</EnvironmentValue>
+        </EnvironmentItem>
+        <EnvironmentItem>
+          <EnvironmentLabel>湿度</EnvironmentLabel>
+          <EnvironmentValue>{environmentStatus.humidity || '--'} %</EnvironmentValue>
+        </EnvironmentItem>
+      </EnvironmentBar>
       
       {/* 回收站按钮 */}
       <Button
