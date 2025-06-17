@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { connectSocket } from '../../services/socketService';
+import { enableMonitor, disableMonitor } from '../../services/api';
 
 // 页面整体容器 - 使用与GuidingUI和LoginRegisterUI相同的渐变背景
 const PageContainer = styled.div`
@@ -173,6 +174,29 @@ const LogoutButton = styled(Link)`
   }
 `;
 
+// 监控控制按钮 - 与退出按钮样式保持一致
+const MonitorButton = styled.button`
+  display: inline-block;
+  padding: 12px 25px;
+  font-size: 1.1rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: bold;
+  margin-top: 25px;
+  margin-left: 15px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+`;
+
 const MainControlUI = () => {
   // 按钮位置和速度状态
   const [buttonPositions, setButtonPositions] = useState([
@@ -180,6 +204,17 @@ const MainControlUI = () => {
     { x: 30, y: 250, vx: -0.3, vy: -0.4 }, // 场景配置 - 左下区域
     { x: 250, y: 250, vx: 0.4, vy: -0.5 } // 智能推荐 - 右下区域
   ]);
+
+  // 添加monitor状态
+  const [isMonitorEnabled, setIsMonitorEnabled] = React.useState(() => {
+    // 初始化时从localStorage读取监控状态
+    const savedData = localStorage.getItem('monitorData');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      return data.monitor || false;
+    }
+    return false;
+  });
   
   const animationRef = useRef();
   
@@ -272,11 +307,24 @@ const MainControlUI = () => {
       // 连接 Socket.IO
       connectSocket();
     }
+
+    // 监控数据更新事件处理函数
+    const handleMonitorDataUpdate = (event) => {
+      const data = event.detail;
+      if (data && typeof data.monitor !== 'undefined') {
+        setIsMonitorEnabled(data.monitor);
+      }
+    };
+
+    // 添加事件监听器
+    window.addEventListener('monitorDataUpdate', handleMonitorDataUpdate);
     
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      // 移除事件监听器
+      window.removeEventListener('monitorDataUpdate', handleMonitorDataUpdate);
     };
   }, []);
 
@@ -324,9 +372,24 @@ const MainControlUI = () => {
           </FeatureButton>
         </CircularLayout>
         
-        <LogoutButton to="/">
-          🚪 退出登录
-        </LogoutButton>
+        <div>
+          <LogoutButton to="/">
+            🚪 退出登录
+          </LogoutButton>
+          <MonitorButton onClick={async () => {
+            try {
+              if (isMonitorEnabled) {
+                await disableMonitor();
+              } else {
+                await enableMonitor();
+              }
+            } catch (error) {
+              console.error('切换监控状态失败:', error);
+            }
+          }}>
+            {isMonitorEnabled ? '🔴 关闭自动切换' : '🟢 开启自动切换'}
+          </MonitorButton>
+        </div>
       </Container>
     </PageContainer>
   );

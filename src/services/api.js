@@ -150,6 +150,15 @@ export const findAllBehavior = async (username) => {
   return axios.post(`${API_URL}/history/behavior/findAll`, { username: username });
 };
 
+// 自动监听控制接口
+export const disableMonitor = async () => {
+  return axios.post(`${API_URL}/execute/disable`);
+};
+
+export const enableMonitor = async () => {
+  return axios.post(`${API_URL}/execute/enable`);
+};
+
 // 环境状态接口
 // export const getEnvironmentStatus = async () => {
 //   return axios.get(`${ACCESS_URL}/environment`);
